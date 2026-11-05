@@ -1,6 +1,10 @@
 package com.shopcloud.carrito.service;
 
-import com.shopcloud.carrito.dto.*;
+import com.shopcloud.carrito.dto.ActualizarCantidadDTO;
+import com.shopcloud.carrito.dto.AgregarProductoDTO;
+import com.shopcloud.carrito.dto.CarritoDTO;
+import com.shopcloud.carrito.dto.ElementoCarritoDTO;
+import com.shopcloud.carrito.dto.SincronizarCarritoDTO;
 import com.shopcloud.carrito.entity.Carrito;
 import com.shopcloud.carrito.entity.ElementoCarrito;
 import com.shopcloud.carrito.repository.CarritoRepository;
@@ -21,15 +25,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Un carrito ACTIVO por cliente y tienda. Los importes siempre se recalculan con los
+ * precios del catálogo; nunca se aceptan desde el frontend.
+ */
 @Service
 @RequiredArgsConstructor
 public class CarritoService {
-
-    private static final String ESTADO_ACTIVO = "ACTIVO";
 
     private final CarritoRepository carritoRepository;
     private final ElementoCarritoRepository elementoRepository;
@@ -39,163 +45,223 @@ public class CarritoService {
     private final InventarioRepository inventarioRepository;
     private final TenantService tenantService;
 
-    @Transactional(readOnly = true)
-    public CarritoDTO obtenerActual() {
-        return buscarCarritoActualSiExiste()
-                .map(this::convertirDTO)
-                .orElseGet(this::carritoVacio);
-    }
-
-    @Transactional(readOnly = true)
-    public Carrito obtenerCarritoActualParaCheckout() {
-        return obtenerCarritoActual();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ElementoCarrito> obtenerElementosParaCheckout(Carrito carrito) {
-        return elementoRepository.findByCarritoIdOrderById(carrito.getId());
-    }
-
     @Transactional
-    public void vaciarDespuesDeCheckout(Carrito carrito) {
-        elementoRepository.deleteByCarritoId(carrito.getId());
-        tocar(carrito);
+    public CarritoDTO obtenerActual() {
+        return buscarCarritoActual()
+                .map(carrito -> convertirDTO(recalcular(carrito), List.of()))
+                .orElseGet(this::carritoVacio);
     }
 
     @Transactional
     public CarritoDTO agregarProducto(AgregarProductoDTO dto) {
         Long tiendaId = tenantService.obtenerTenantId();
-        Cliente cliente = clienteService.obtenerOCrearClienteActual();
         Producto producto = buscarProductoActivo(dto.getProductoId(), tiendaId);
         Variante variante = buscarVarianteActiva(producto, dto.getVarianteId());
-        Inventario inventario = buscarInventario(tiendaId, producto.getId(), variante);
-        Carrito carrito = obtenerOCrearCarritoActivo(cliente, tiendaId);
+        Inventario inventario = buscarInventario(tiendaId, producto.getId(), variante)
+                .orElseThrow(this::inventarioNoConfigurado);
 
-        Optional<ElementoCarrito> existente = buscarElementoPorProducto(
-                carrito.getId(), producto.getId(), variante);
-        int cantidadResultante = dto.getCantidad()
-                + existente.map(ElementoCarrito::getCantidad).orElse(0);
+        Carrito carrito = obtenerOCrearCarrito();
+        Optional<ElementoCarrito> existente =
+                buscarElemento(carrito.getId(), producto.getId(), variante);
 
-        validarStock(inventario, cantidadResultante);
+        int cantidad = dto.getCantidad() + existente.map(ElementoCarrito::getCantidad).orElse(0);
+        validarStock(inventario, cantidad);
 
-        BigDecimal precio = variante != null && variante.getPrecio() != null
-                ? variante.getPrecio()
-                : producto.getPrecio();
+        guardarElemento(carrito, producto, variante, existente, cantidad);
+        return convertirDTO(recalcular(carrito), List.of());
+    }
 
-        ElementoCarrito elemento = existente.orElseGet(() ->
-                ElementoCarrito.builder()
-                        .carrito(carrito)
-                        .producto(producto)
-                        .variante(variante)
-                        .build());
+    /**
+     * Incorpora el carrito del navegador al iniciar sesión. Se puede repetir sin duplicar
+     * cantidades, y lo que ya no se puede vender se omite con una advertencia.
+     */
+    @Transactional
+    public CarritoDTO sincronizar(SincronizarCarritoDTO dto) {
+        Long tiendaId = tenantService.obtenerTenantId();
+        Carrito carrito = obtenerOCrearCarrito();
+        List<String> advertencias = new ArrayList<>();
 
-        elemento.setCantidad(cantidadResultante);
-        elemento.setPrecioUnitario(precio);
-        elementoRepository.save(elemento);
-        tocar(carrito);
+        for (AgregarProductoDTO item : dto.getElementos()) {
+            Optional<Producto> producto =
+                    productoRepository.findByIdAndTiendaIdAndActivoTrue(item.getProductoId(), tiendaId);
 
-        return convertirDTO(carrito);
+            if (producto.isEmpty()) {
+                advertencias.add("El producto " + item.getProductoId() + " ya no está disponible");
+                continue;
+            }
+            sincronizarElemento(carrito, producto.get(), item, tiendaId, advertencias);
+        }
+        return convertirDTO(recalcular(carrito), advertencias);
     }
 
     @Transactional
     public CarritoDTO actualizarCantidad(Long elementoId, ActualizarCantidadDTO dto) {
-        Long tiendaId = tenantService.obtenerTenantId();
-        Carrito carrito = obtenerCarritoActual();
+        Carrito carrito = obtenerCarritoExistente();
         ElementoCarrito elemento = buscarElementoPropio(elementoId, carrito.getId());
+
         Inventario inventario = buscarInventario(
-                tiendaId,
+                tenantService.obtenerTenantId(),
                 elemento.getProducto().getId(),
                 elemento.getVariante()
-        );
+        ).orElseThrow(this::inventarioNoConfigurado);
 
         validarStock(inventario, dto.getCantidad());
         elemento.setCantidad(dto.getCantidad());
         elementoRepository.save(elemento);
-        tocar(carrito);
 
-        return convertirDTO(carrito);
+        return convertirDTO(recalcular(carrito), List.of());
     }
 
     @Transactional
     public void eliminarElemento(Long elementoId) {
-        Carrito carrito = obtenerCarritoActual();
-        ElementoCarrito elemento = buscarElementoPropio(elementoId, carrito.getId());
-        elementoRepository.delete(elemento);
-        tocar(carrito);
+        Carrito carrito = obtenerCarritoExistente();
+        elementoRepository.delete(buscarElementoPropio(elementoId, carrito.getId()));
+        elementoRepository.flush();
+        recalcular(carrito);
     }
 
     @Transactional
     public void vaciar() {
-        buscarCarritoActualSiExiste().ifPresent(carrito -> {
+        buscarCarritoActual().ifPresent(carrito -> {
             elementoRepository.deleteByCarritoId(carrito.getId());
-            tocar(carrito);
+            elementoRepository.flush();
+            recalcular(carrito);
         });
     }
 
-    private Optional<Carrito> buscarCarritoActualSiExiste() {
-        Long tiendaId = tenantService.obtenerTenantId();
-        return clienteService.obtenerClienteActualSiExiste()
-                .flatMap(cliente -> carritoRepository
-                        .findFirstByClienteIdAndTiendaIdAndEstadoOrderByCreadoEnDesc(
-                                cliente.getId(), tiendaId, ESTADO_ACTIVO));
+    private void sincronizarElemento(
+            Carrito carrito,
+            Producto producto,
+            AgregarProductoDTO item,
+            Long tiendaId,
+            List<String> advertencias
+    ) {
+        Variante variante = null;
+
+        if (item.getVarianteId() != null) {
+            variante = varianteRepository
+                    .findByIdAndProductoIdAndActivoTrue(item.getVarianteId(), producto.getId())
+                    .orElse(null);
+
+            if (variante == null) {
+                advertencias.add("Una variante de " + producto.getNombre() + " ya no está disponible");
+                return;
+            }
+        }
+
+        int stock = buscarInventario(tiendaId, producto.getId(), variante)
+                .map(Inventario::getCantidad)
+                .orElse(0);
+
+        if (stock == 0) {
+            advertencias.add(producto.getNombre() + " no tiene stock disponible");
+            return;
+        }
+
+        Optional<ElementoCarrito> existente =
+                buscarElemento(carrito.getId(), producto.getId(), variante);
+        int deseada = Math.max(item.getCantidad(), existente.map(ElementoCarrito::getCantidad).orElse(0));
+        int cantidad = Math.min(deseada, stock);
+
+        if (cantidad < deseada) {
+            advertencias.add("La cantidad de " + producto.getNombre() + " se ajustó al stock disponible");
+        }
+        guardarElemento(carrito, producto, variante, existente, cantidad);
     }
 
-    private Carrito obtenerCarritoActual() {
-        return buscarCarritoActualSiExiste()
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Carrito activo no encontrado"));
+    private void guardarElemento(
+            Carrito carrito,
+            Producto producto,
+            Variante variante,
+            Optional<ElementoCarrito> existente,
+            int cantidad
+    ) {
+        ElementoCarrito elemento = existente.orElseGet(() -> ElementoCarrito.builder()
+                .tienda(carrito.getTienda())
+                .carrito(carrito)
+                .producto(producto)
+                .variante(variante)
+                .build());
+
+        elemento.setCantidad(cantidad);
+        elemento.setPrecioUnitario(precioActual(producto, variante));
+        elementoRepository.save(elemento);
     }
 
-    private Carrito obtenerOCrearCarritoActivo(Cliente cliente, Long tiendaId) {
-        return carritoRepository
-                .findFirstByClienteIdAndTiendaIdAndEstadoOrderByCreadoEnDesc(
-                        cliente.getId(), tiendaId, ESTADO_ACTIVO)
-                .orElseGet(() -> carritoRepository.save(
-                        Carrito.builder()
-                                .tienda(cliente.getTienda())
-                                .cliente(cliente)
-                                .estado(ESTADO_ACTIVO)
-                                .build()));
+    private Carrito recalcular(Carrito carrito) {
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (ElementoCarrito elemento : elementoRepository.findByCarritoIdOrderById(carrito.getId())) {
+            BigDecimal precio = precioActual(elemento.getProducto(), elemento.getVariante());
+            elemento.setPrecioUnitario(precio);
+            total = total.add(precio.multiply(BigDecimal.valueOf(elemento.getCantidad())));
+        }
+
+        carrito.setTotal(total);
+        return carritoRepository.save(carrito);
+    }
+
+    private BigDecimal precioActual(Producto producto, Variante variante) {
+        return variante != null ? variante.precioEfectivo() : producto.getPrecio();
+    }
+
+    private Optional<Carrito> buscarCarritoActual() {
+        return carritoRepository.findByClienteIdAndTiendaIdAndEstado(
+                clienteService.obtenerClienteActual().getId(),
+                tenantService.obtenerTenantId(),
+                Carrito.ESTADO_ACTIVO
+        );
+    }
+
+    private Carrito obtenerCarritoExistente() {
+        return buscarCarritoActual()
+                .orElseThrow(() -> new RecursoNoEncontradoException("Carrito activo no encontrado"));
+    }
+
+    private Carrito obtenerOCrearCarrito() {
+        return buscarCarritoActual().orElseGet(() -> {
+            Cliente cliente = clienteService.obtenerClienteActual();
+            return carritoRepository.save(
+                    Carrito.builder()
+                            .tienda(cliente.getTienda())
+                            .cliente(cliente)
+                            .estado(Carrito.ESTADO_ACTIVO)
+                            .total(BigDecimal.ZERO)
+                            .build()
+            );
+        });
     }
 
     private Producto buscarProductoActivo(Long productoId, Long tiendaId) {
-        return productoRepository
-                .findByIdAndTiendaIdAndActivoTrue(productoId, tiendaId)
+        return productoRepository.findByIdAndTiendaIdAndActivoTrue(productoId, tiendaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Producto activo no encontrado en la tienda"));
     }
 
     private Variante buscarVarianteActiva(Producto producto, Long varianteId) {
-        if (varianteId == null) return null;
-        return varianteRepository
-                .findByIdAndProductoIdAndActivoTrue(varianteId, producto.getId())
+        if (varianteId == null) {
+            return null;
+        }
+        return varianteRepository.findByIdAndProductoIdAndActivoTrue(varianteId, producto.getId())
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "Variante activa no encontrada para el producto"));
     }
 
-    private Inventario buscarInventario(
-            Long tiendaId,
-            Long productoId,
-            Variante variante
-    ) {
-        Optional<Inventario> inventario = variante == null
-                ? inventarioRepository.findByTiendaIdAndProductoIdAndVarianteIsNull(
-                        tiendaId, productoId)
+    private Optional<Inventario> buscarInventario(Long tiendaId, Long productoId, Variante variante) {
+        return variante == null
+                ? inventarioRepository.findByTiendaIdAndProductoIdAndVarianteIsNull(tiendaId, productoId)
                 : inventarioRepository.findByTiendaIdAndProductoIdAndVarianteId(
                         tiendaId, productoId, variante.getId());
-
-        return inventario.orElseThrow(() -> new RecursoNoEncontradoException(
-                "Inventario no configurado para el producto o variante"));
     }
 
-    private Optional<ElementoCarrito> buscarElementoPorProducto(
-            Long carritoId,
-            Long productoId,
-            Variante variante
-    ) {
+    private RecursoNoEncontradoException inventarioNoConfigurado() {
+        return new RecursoNoEncontradoException(
+                "Inventario no configurado para el producto o variante");
+    }
+
+    private Optional<ElementoCarrito> buscarElemento(Long carritoId, Long productoId, Variante variante) {
         return variante == null
-                ? elementoRepository.findByCarritoIdAndProductoIdAndVarianteIsNull(
-                        carritoId, productoId)
+                ? elementoRepository.findByCarritoIdAndProductoIdAndVarianteIsNull(carritoId, productoId)
                 : elementoRepository.findByCarritoIdAndProductoIdAndVarianteId(
                         carritoId, productoId, variante.getId());
     }
@@ -213,37 +279,24 @@ public class CarritoService {
         }
     }
 
-    private void tocar(Carrito carrito) {
-        carrito.setActualizadoEn(LocalDateTime.now());
-        carritoRepository.save(carrito);
-    }
-
-    private CarritoDTO convertirDTO(Carrito carrito) {
+    private CarritoDTO convertirDTO(Carrito carrito, List<String> advertencias) {
         List<ElementoCarritoDTO> elementos = elementoRepository
                 .findByCarritoIdOrderById(carrito.getId())
                 .stream()
                 .map(this::convertirElementoDTO)
                 .toList();
 
-        int cantidadTotal = elementos.stream()
-                .mapToInt(ElementoCarritoDTO::getCantidad)
-                .sum();
-        BigDecimal subtotal = elementos.stream()
-                .map(ElementoCarritoDTO::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         return CarritoDTO.builder()
                 .id(carrito.getId())
                 .elementos(elementos)
-                .cantidadTotal(cantidadTotal)
-                .subtotal(subtotal)
+                .cantidadTotal(elementos.stream().mapToInt(ElementoCarritoDTO::getCantidad).sum())
+                .total(carrito.getTotal())
+                .advertencias(advertencias)
                 .build();
     }
 
     private ElementoCarritoDTO convertirElementoDTO(ElementoCarrito elemento) {
         Variante variante = elemento.getVariante();
-        BigDecimal subtotal = elemento.getPrecioUnitario()
-                .multiply(BigDecimal.valueOf(elemento.getCantidad()));
 
         return ElementoCarritoDTO.builder()
                 .id(elemento.getId())
@@ -253,7 +306,8 @@ public class CarritoService {
                 .nombreVariante(variante != null ? variante.getNombre() : null)
                 .cantidad(elemento.getCantidad())
                 .precioUnitario(elemento.getPrecioUnitario())
-                .subtotal(subtotal)
+                .subtotal(elemento.getPrecioUnitario()
+                        .multiply(BigDecimal.valueOf(elemento.getCantidad())))
                 .build();
     }
 
@@ -262,7 +316,8 @@ public class CarritoService {
                 .id(null)
                 .elementos(List.of())
                 .cantidadTotal(0)
-                .subtotal(BigDecimal.ZERO)
+                .total(BigDecimal.ZERO)
+                .advertencias(List.of())
                 .build();
     }
 }

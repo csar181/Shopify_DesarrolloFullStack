@@ -22,7 +22,11 @@ public class ActualizarDescuentoDTO {
     private String tipo;
 
     @NotNull(message = "El valor es obligatorio")
-    @DecimalMin(value = "0.00")
+    @DecimalMin(
+            value = "0.00",
+            inclusive = false,
+            message = "El valor debe ser mayor que cero"
+    )
     private BigDecimal valor;
 
     @NotNull(message = "La fecha de inicio es obligatoria")

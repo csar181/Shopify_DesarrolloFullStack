@@ -8,6 +8,7 @@ import com.shopcloud.catalogo.repository.CategoriaRepository;
 import com.shopcloud.exception.RecursoNoEncontradoException;
 import com.shopcloud.exception.ReglaNegocioException;
 
+import com.shopcloud.plan.service.LimitesPlanService;
 import com.shopcloud.tenant.TenantService;
 import com.shopcloud.tienda.entity.Tienda;
 
@@ -24,12 +25,14 @@ public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
     private final TenantService tenantService;
-
+    private final LimitesPlanService limitesPlanService;
     @Transactional
     public CategoriaRespuestaDTO crear(CategoriaDTO dto) {
 
         Long tiendaId =
                 tenantService.obtenerTenantId();
+
+        limitesPlanService.verificarCupoCategorias(tiendaId);
 
         if (categoriaRepository
                 .existsByNombreIgnoreCaseAndTiendaId(
@@ -88,6 +91,11 @@ public class CategoriaService {
         Categoria categoria =
                 buscarCategoria(id);
 
+        if (categoriaRepository.existsByNombreIgnoreCaseAndTiendaIdAndIdNot(
+                dto.getNombre().trim(), tenantService.obtenerTenantId(), id)) {
+            throw new ReglaNegocioException("Ya existe una categoría con ese nombre");
+        }
+
         categoria.setNombre(
                 dto.getNombre().trim()
         );
@@ -110,6 +118,18 @@ public class CategoriaService {
         categoria.setActivo(false);
 
         categoriaRepository.save(categoria);
+    }
+
+    @Transactional
+    public CategoriaRespuestaDTO activar(Long id) {
+        Categoria categoria = buscarCategoria(id);
+
+        if (!Boolean.TRUE.equals(categoria.getActivo())) {
+            limitesPlanService.verificarCupoCategorias(tenantService.obtenerTenantId());
+            categoria.setActivo(true);
+        }
+
+        return convertirDTO(categoriaRepository.save(categoria));
     }
 
     private Categoria buscarCategoria(Long id) {

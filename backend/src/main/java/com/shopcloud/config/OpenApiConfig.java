@@ -100,7 +100,8 @@ public class OpenApiConfig {
                 || path.startsWith("/api/inventario")
                 || path.startsWith("/api/descuentos")
                 || path.startsWith("/api/clientes")
-                || path.startsWith("/api/pedidos")
+                || path.startsWith("/api/gestion")
+                || path.startsWith("/api/suscripciones")
                 || path.startsWith("/api/analitica");
     }
 }

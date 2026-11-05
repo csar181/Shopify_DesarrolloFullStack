@@ -1,7 +1,14 @@
 package com.shopcloud.cliente.entity;
 
+import com.shopcloud.tienda.entity.Tienda;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "direcciones")
@@ -17,14 +24,14 @@ public class Direccion {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "tienda_id", nullable = false)
+    private Tienda tienda;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    @Column(
-            name = "linea_direccion",
-            nullable = false,
-            length = 255
-    )
+    @Column(name = "linea_direccion", nullable = false, length = 255)
     private String lineaDireccion;
 
     @Column(nullable = false, length = 100)
@@ -41,4 +48,14 @@ public class Direccion {
 
     @Column(length = 255)
     private String referencia;
+
+    @Column(name = "creado_en", nullable = false)
+    private LocalDateTime creadoEn;
+
+    @PrePersist
+    protected void prePersist() {
+        if (creadoEn == null) {
+            creadoEn = LocalDateTime.now();
+        }
+    }
 }

@@ -12,8 +12,8 @@ import com.shopcloud.catalogo.repository.VarianteRepository;
 import com.shopcloud.exception.RecursoNoEncontradoException;
 import com.shopcloud.exception.ReglaNegocioException;
 
+import com.shopcloud.inventario.repository.InventarioRepository;
 import com.shopcloud.tenant.TenantService;
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -27,17 +27,23 @@ public class VarianteService {
 
     private final VarianteRepository varianteRepository;
     private final ProductoRepository productoRepository;
+    private final InventarioRepository inventarioRepository;
     private final TenantService tenantService;
-
     @Transactional
     public VarianteRespuestaDTO crear(
             Long productoId,
             VarianteDTO dto
     ) {
 
-        Producto producto =
-                buscarProducto(productoId);
+        Producto producto = productoRepository
+                .findWithLockByIdAndTiendaId(productoId, tenantService.obtenerTenantId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
 
+        if (inventarioRepository.existsByProductoIdAndVarianteIsNull(productoId)) {
+            throw new ReglaNegocioException(
+                    "El producto gestiona su inventario de forma general. "
+                            + "Elimine ese inventario antes de agregar variantes");
+        }
         validarSkuCrear(
                 productoId,
                 dto.getSku()

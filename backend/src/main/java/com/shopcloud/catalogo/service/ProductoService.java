@@ -13,6 +13,7 @@ import com.shopcloud.catalogo.repository.ProductoRepository;
 import com.shopcloud.exception.RecursoNoEncontradoException;
 import com.shopcloud.exception.ReglaNegocioException;
 
+import com.shopcloud.plan.service.LimitesPlanService;
 import com.shopcloud.tenant.TenantService;
 import com.shopcloud.tienda.entity.Tienda;
 
@@ -30,7 +31,7 @@ public class ProductoService {
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
     private final TenantService tenantService;
-
+    private final LimitesPlanService limitesPlanService;
     @Transactional
     public ProductoRespuestaDTO crear(
             CrearProductoDTO dto
@@ -39,8 +40,9 @@ public class ProductoService {
         Long tiendaId =
                 tenantService.obtenerTenantId();
 
-        validarSkuCrear(dto.getSku(), tiendaId);
+        limitesPlanService.verificarCupoProductos(tiendaId);
 
+        validarSkuCrear(dto.getSku(), tiendaId);
         Categoria categoria =
                 obtenerCategoria(
                         dto.getCategoriaId(),
@@ -142,6 +144,18 @@ public class ProductoService {
         producto.setActivo(false);
 
         productoRepository.save(producto);
+    }
+
+    @Transactional
+    public ProductoRespuestaDTO activar(Long id) {
+        Producto producto = buscarProducto(id);
+
+        if (!Boolean.TRUE.equals(producto.getActivo())) {
+            limitesPlanService.verificarCupoProductos(tenantService.obtenerTenantId());
+            producto.setActivo(true);
+        }
+
+        return convertirDTO(productoRepository.save(producto));
     }
 
     private Producto buscarProducto(Long id) {

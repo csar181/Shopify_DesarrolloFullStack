@@ -34,6 +34,11 @@ public class Variante {
     @Column(nullable = false)
     private Boolean activo;
 
+    /** Si la variante no tiene precio propio se usa el del producto. */
+    public BigDecimal precioEfectivo() {
+        return precio != null ? precio : producto.getPrecio();
+    }
+
     @PrePersist
     protected void prePersist() {
         if (activo == null) {

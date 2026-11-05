@@ -21,6 +21,8 @@ Optional<Categoria> findByIdAndTiendaIdAndActivoTrue(
         Long tiendaId
 );
 
+    long countByTiendaIdAndActivoTrue(Long tiendaId);
+
     boolean existsByNombreIgnoreCaseAndTiendaId(
             String nombre,
             Long tiendaId

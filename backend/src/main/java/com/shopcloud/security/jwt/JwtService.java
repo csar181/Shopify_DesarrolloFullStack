@@ -1,23 +1,28 @@
 package com.shopcloud.security.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
+/**
+ * El mismo correo puede existir en usuarios y en varias tiendas, así que el token
+ * identifica la cuenta por tipo e ID, y no por correo.
+ */
 @Service
 public class JwtService {
+
+    public static final String CLAIM_TIPO = "tipo";
+    public static final String CLAIM_TIENDA = "tiendaId";
+    public static final String TIPO_USUARIO = "USUARIO";
+    public static final String TIPO_CLIENTE = "CLIENTE";
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -25,67 +30,44 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    public String generarToken(UserDetails userDetails) {
+    private SecretKey clave;
 
-        Map<String, Object> claims = new HashMap<>();
-
-        claims.put(
-                "roles",
-                userDetails.getAuthorities()
-                        .stream()
-                        .map(authority -> authority.getAuthority())
-                        .toList()
-        );
-
-        return crearToken(claims, userDetails);
+    /** Una clave inválida impide el arranque, en lugar de fallar en cada inicio de sesión. */
+    @PostConstruct
+    void inicializarClave() {
+        try {
+            clave = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        } catch (JwtException | IllegalArgumentException e) {
+            // El mensaje no incluye el valor de la clave ni la causa, que podría contenerlo.
+            throw new IllegalStateException(
+                    "JWT_SECRET no es válido: debe estar en Base64 y equivaler a al menos 32 bytes. "
+                            + "Genere uno con: openssl rand -base64 48");
+        }
     }
 
-    private String crearToken(
-            Map<String, Object> claims,
-            UserDetails userDetails
-    ) {
-
-        Date ahora = new Date();
-
-        Date expiracion = new Date(
-                ahora.getTime() + jwtExpiration
-        );
-
+    public String generarTokenUsuario(Long usuarioId) {
         return Jwts.builder()
-                .claims(claims)
-                .subject(userDetails.getUsername())
-                .issuedAt(ahora)
-                .expiration(expiracion)
+                .claim(CLAIM_TIPO, TIPO_USUARIO)
+                .subject(String.valueOf(usuarioId))
+                .issuedAt(new Date())
+                .expiration(calcularExpiracion())
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    public String extraerCorreo(String token) {
-        return extraerClaim(
-                token,
-                Claims::getSubject
-        );
+    public String generarTokenCliente(Long clienteId, Long tiendaId) {
+        return Jwts.builder()
+                .claim(CLAIM_TIPO, TIPO_CLIENTE)
+                .claim(CLAIM_TIENDA, tiendaId)
+                .subject(String.valueOf(clienteId))
+                .issuedAt(new Date())
+                .expiration(calcularExpiracion())
+                .signWith(getSigningKey())
+                .compact();
     }
 
-    public Date extraerExpiracion(String token) {
-        return extraerClaim(
-                token,
-                Claims::getExpiration
-        );
-    }
-
-    public <T> T extraerClaim(
-            String token,
-            Function<Claims, T> claimsResolver
-    ) {
-
-        Claims claims = extraerTodosLosClaims(token);
-
-        return claimsResolver.apply(claims);
-    }
-
-    private Claims extraerTodosLosClaims(String token) {
-
+    /** Verifica firma y expiración; lanza una excepción si el token no es válido. */
+    public Claims validar(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -93,26 +75,11 @@ public class JwtService {
                 .getPayload();
     }
 
-    public boolean esTokenValido(
-            String token,
-            UserDetails userDetails
-    ) {
-
-        String correo = extraerCorreo(token);
-
-        return correo.equals(userDetails.getUsername())
-                && !estaExpirado(token);
-    }
-
-    private boolean estaExpirado(String token) {
-        return extraerExpiracion(token)
-                .before(new Date());
+    private Date calcularExpiracion() {
+        return new Date(System.currentTimeMillis() + jwtExpiration);
     }
 
     private SecretKey getSigningKey() {
-
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-
-        return Keys.hmacShaKeyFor(keyBytes);
+        return clave;
     }
 }

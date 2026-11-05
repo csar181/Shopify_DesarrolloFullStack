@@ -24,9 +24,9 @@ public class CrearDescuentoDTO {
 
     @NotNull(message = "El valor es obligatorio")
     @DecimalMin(
-        value = "0.00",
-        inclusive = true,
-        message = "El valor no puede ser negativo"
+            value = "0.00",
+            inclusive = false,
+            message = "El valor debe ser mayor que cero"
     )
     private BigDecimal valor;
 

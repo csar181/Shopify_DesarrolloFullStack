@@ -6,8 +6,15 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 
+/**
+ * Propietario autenticado. Su relación con cada tienda se valida siempre contra
+ * tiendas.propietario_id; el rol solo lo distingue de una cuenta de cliente.
+ */
 public class UsuarioPrincipal implements UserDetails {
+
+    public static final String ROL_PROPIETARIO = "PROPIETARIO_TIENDA";
 
     private final Usuario usuario;
 
@@ -29,12 +36,7 @@ public class UsuarioPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return usuario.getRoles()
-                .stream()
-                .map(rol -> new SimpleGrantedAuthority(
-                        "ROLE_" + rol.getNombre()
-                ))
-                .toList();
+        return List.of(new SimpleGrantedAuthority("ROLE_" + ROL_PROPIETARIO));
     }
 
     @Override
@@ -45,21 +47,6 @@ public class UsuarioPrincipal implements UserDetails {
     @Override
     public String getUsername() {
         return usuario.getCorreoElectronico();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
     }
 
     @Override

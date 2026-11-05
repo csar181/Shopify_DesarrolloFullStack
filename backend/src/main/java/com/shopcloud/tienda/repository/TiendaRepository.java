@@ -1,13 +1,14 @@
 package com.shopcloud.tienda.repository;
 
 import com.shopcloud.tienda.entity.Tienda;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface TiendaRepository
-        extends JpaRepository<Tienda, Long> {
+public interface TiendaRepository extends JpaRepository<Tienda, Long> {
 
     boolean existsBySlug(String slug);
 
@@ -15,15 +16,9 @@ public interface TiendaRepository
 
     List<Tienda> findByPropietarioId(Long propietarioId);
 
-    Optional<Tienda> findByIdAndPropietarioId(
-            Long tiendaId,
-            Long propietarioId
-    );
+    Optional<Tienda> findByIdAndPropietarioId(Long tiendaId, Long propietarioId);
 
-    boolean existsByIdAndPropietarioIdAndActivoTrue(
-            Long tiendaId,
-            Long propietarioId
-    );
-
-    boolean existsByIdAndActivoTrue(Long tiendaId);
+    /** Serializa las operaciones que dependen de contadores o suscripciones de la tienda. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Tienda> findWithLockById(Long tiendaId);
 }

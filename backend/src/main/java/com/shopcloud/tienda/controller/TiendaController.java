@@ -1,5 +1,6 @@
 package com.shopcloud.tienda.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.shopcloud.security.UsuarioPrincipal;
 
 import com.shopcloud.tienda.dto.ActualizarTiendaDTO;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@PreAuthorize("hasRole('PROPIETARIO_TIENDA')")
 @RequestMapping("/api/tiendas")
 @RequiredArgsConstructor
 public class TiendaController {
@@ -93,6 +95,14 @@ public class TiendaController {
                         principal.getId()
                 )
         );
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<TiendaRespuestaDTO> activar(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UsuarioPrincipal principal
+    ) {
+        return ResponseEntity.ok(tiendaService.activar(id, principal.getId()));
     }
 
     @DeleteMapping("/{id}")
