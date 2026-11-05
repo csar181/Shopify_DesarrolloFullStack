@@ -9,7 +9,7 @@ crear y administrar sus propias tiendas virtuales.
 ## Tecnologías
 
 ### Backend
-- Java 21
+- Java 22
 - Spring Boot
 - Spring Security
 - JWT
