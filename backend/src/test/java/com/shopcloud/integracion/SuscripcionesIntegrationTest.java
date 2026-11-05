@@ -35,6 +35,16 @@ class SuscripcionesIntegrationTest extends IntegracionBase {
     }
 
     @Test
+    void unCuerpoQueNoEsJsonRespondeTipoNoSoportado() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/auth/registro")
+                        .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
+                        .content("hola"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.detail").value("El cuerpo de la petición debe enviarse como JSON"));
+    }
+
+    @Test
     void lasRutasPrivadasExigenSesion() throws Exception {
         get("/api/tiendas/mis-tiendas", null, null).andExpect(status().isUnauthorized());
         get("/api/tiendas/mis-tiendas", "token-invalido", null).andExpect(status().isUnauthorized());

@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -69,6 +70,13 @@ public class GlobalExceptionHandler {
     public ProblemDetail manejarRutaInexistente(NoResourceFoundException ex, HttpServletRequest request) {
         return crearProblemDetail(HttpStatus.NOT_FOUND, "Recurso no encontrado",
                 "La ruta solicitada no existe", request);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ProblemDetail manejarTipoNoSoportado(
+            HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+        return crearProblemDetail(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Tipo de contenido no soportado",
+                "El cuerpo de la petición debe enviarse como JSON", request);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

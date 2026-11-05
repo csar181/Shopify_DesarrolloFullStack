@@ -1,9 +1,11 @@
 package com.shopcloud.security.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +29,21 @@ public class JwtService {
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+    private SecretKey clave;
+
+    /** Una clave inválida impide el arranque, en lugar de fallar en cada inicio de sesión. */
+    @PostConstruct
+    void inicializarClave() {
+        try {
+            clave = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        } catch (JwtException | IllegalArgumentException e) {
+            // El mensaje no incluye el valor de la clave ni la causa, que podría contenerlo.
+            throw new IllegalStateException(
+                    "JWT_SECRET no es válido: debe estar en Base64 y equivaler a al menos 32 bytes. "
+                            + "Genere uno con: openssl rand -base64 48");
+        }
+    }
 
     public String generarTokenUsuario(Long usuarioId) {
         return Jwts.builder()
@@ -63,6 +80,6 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        return clave;
     }
 }
