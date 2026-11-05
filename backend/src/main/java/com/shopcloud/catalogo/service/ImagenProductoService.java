@@ -7,8 +7,8 @@ import com.shopcloud.catalogo.entity.Producto;
 import com.shopcloud.catalogo.repository.ImagenProductoRepository;
 import com.shopcloud.catalogo.repository.ProductoRepository;
 import com.shopcloud.exception.RecursoNoEncontradoException;
+import com.shopcloud.plan.service.LimitesPlanService;
 import com.shopcloud.tenant.TenantService;
-
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class ImagenProductoService {
     private final ImagenProductoRepository imagenRepository;
     private final ProductoRepository productoRepository;
     private final TenantService tenantService;
-
+    private final LimitesPlanService limitesPlanService;
     @Transactional
     public ImagenProductoRespuestaDTO agregar(
             Long productoId,
@@ -32,6 +32,8 @@ public class ImagenProductoService {
 
         Producto producto = buscarProducto(productoId);
 
+        limitesPlanService.verificarCupoImagenes(
+                tenantService.obtenerTenantId(), productoId);
         boolean principal =
                 Boolean.TRUE.equals(dto.getEsPrincipal());
 
@@ -150,7 +152,8 @@ public class ImagenProductoService {
                 .findByProductoIdAndEsPrincipalTrue(productoId)
                 .ifPresent(imagen -> {
                     imagen.setEsPrincipal(false);
-                    imagenRepository.save(imagen);
+                    // Debe llegar a la base antes de marcar la nueva imagen principal.
+                    imagenRepository.saveAndFlush(imagen);
                 });
     }
 

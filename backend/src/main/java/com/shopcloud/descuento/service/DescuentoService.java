@@ -19,12 +19,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class DescuentoService {
+
+    private static final String TIPO_PORCENTAJE = "PORCENTAJE";
+    private static final String TIPO_MONTO_FIJO = "MONTO_FIJO";
+    private static final BigDecimal CIEN = new BigDecimal("100");
 
     private final DescuentoRepository descuentoRepository;
     private final TenantService tenantService;
@@ -186,6 +191,37 @@ public class DescuentoService {
                 .toList();
     }
 
+    /**
+     * Valida el código en la tienda indicada y calcula el importe sobre el total de
+     * los productos. Un monto fijo no puede superar ese total.
+     */
+    @Transactional(readOnly = true)
+    public DescuentoAplicado aplicar(String codigo, Long tiendaId, BigDecimal subtotal) {
+        Descuento descuento = descuentoRepository
+                .findByCodigoIgnoreCaseAndTiendaId(normalizarCodigo(codigo), tiendaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "El código de descuento no existe en esta tienda"));
+
+        LocalDateTime ahora = LocalDateTime.now();
+        boolean vigente = Boolean.TRUE.equals(descuento.getActivo())
+                && !ahora.isBefore(descuento.getFechaInicio())
+                && !ahora.isAfter(descuento.getFechaFin());
+
+        if (!vigente) {
+            throw new ReglaNegocioException("El código de descuento no está vigente");
+        }
+
+        BigDecimal monto = TIPO_PORCENTAJE.equals(descuento.getTipo())
+                ? subtotal.multiply(descuento.getValor()).divide(CIEN, 2, RoundingMode.HALF_UP)
+                : descuento.getValor();
+
+        if (monto.compareTo(subtotal) > 0) {
+            throw new ReglaNegocioException(
+                    "El descuento no puede superar el total de los productos");
+        }
+        return new DescuentoAplicado(descuento, monto);
+    }
+
     private Descuento buscarDescuento(Long id) {
 
         Long tiendaId =
@@ -247,17 +283,16 @@ public class DescuentoService {
     ) {
 
         if (!tipo.equals("PORCENTAJE")
-                && !tipo.equals("FIJO")) {
+                && !tipo.equals(TIPO_MONTO_FIJO)) {
 
             throw new ReglaNegocioException(
-                    "El tipo debe ser PORCENTAJE o FIJO"
+                    "El tipo debe ser PORCENTAJE o MONTO_FIJO"
             );
         }
 
-        if (valor.compareTo(BigDecimal.ZERO) < 0) {
-
+        if (valor.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ReglaNegocioException(
-                    "El valor no puede ser negativo"
+                    "El valor debe ser mayor que cero"
             );
         }
 

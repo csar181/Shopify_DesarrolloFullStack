@@ -4,22 +4,15 @@ import com.shopcloud.catalogo.entity.Producto;
 import com.shopcloud.catalogo.entity.Variante;
 import com.shopcloud.catalogo.repository.ProductoRepository;
 import com.shopcloud.catalogo.repository.VarianteRepository;
-
 import com.shopcloud.exception.RecursoNoEncontradoException;
 import com.shopcloud.exception.ReglaNegocioException;
-
 import com.shopcloud.inventario.dto.ActualizarInventarioDTO;
 import com.shopcloud.inventario.dto.CrearInventarioDTO;
 import com.shopcloud.inventario.dto.InventarioRespuestaDTO;
-
 import com.shopcloud.inventario.entity.Inventario;
 import com.shopcloud.inventario.repository.InventarioRepository;
-
 import com.shopcloud.tenant.TenantService;
-import com.shopcloud.tienda.entity.Tienda;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,244 +28,127 @@ public class InventarioService {
     private final TenantService tenantService;
 
     @Transactional
-    public InventarioRespuestaDTO crear(
-            CrearInventarioDTO dto
-    ) {
+    public InventarioRespuestaDTO crear(CrearInventarioDTO dto) {
+        Long tiendaId = tenantService.obtenerTenantId();
 
-        Long tiendaId =
-                tenantService.obtenerTenantId();
+        // El bloqueo evita crear a la vez stock general y stock por variante.
+        Producto producto = productoRepository
+                .findWithLockByIdAndTiendaId(dto.getProductoId(), tiendaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Producto no encontrado"));
 
-        Tienda tienda =
-                tenantService.obtenerTiendaActual();
+        Variante variante = obtenerVariante(producto, dto.getVarianteId());
+        validarFormaDeGestion(producto.getId(), variante);
 
-        Producto producto =
-                buscarProducto(
-                        dto.getProductoId(),
-                        tiendaId
-                );
-
-        Variante variante =
-                obtenerVariante(
-                        producto,
-                        dto.getVarianteId()
-                );
-
-        validarDuplicado(
-                tiendaId,
-                producto.getId(),
-                dto.getVarianteId()
-        );
-
-        Inventario inventario =
+        return convertirDTO(inventarioRepository.save(
                 Inventario.builder()
-                        .tienda(tienda)
+                        .tienda(tenantService.obtenerTiendaActual())
                         .producto(producto)
                         .variante(variante)
                         .cantidad(dto.getCantidad())
-                        .cantidadMinima(
-                                dto.getCantidadMinima()
-                        )
-                        .build();
-
-        return convertirDTO(
-                inventarioRepository.save(inventario)
-        );
+                        .cantidadMinima(dto.getCantidadMinima())
+                        .build()
+        ));
     }
 
     @Transactional(readOnly = true)
     public List<InventarioRespuestaDTO> listar() {
-
-        Long tiendaId =
-                tenantService.obtenerTenantId();
-
-        return inventarioRepository
-                .findByTiendaId(tiendaId)
+        return inventarioRepository.findByTiendaId(tenantService.obtenerTenantId())
                 .stream()
                 .map(this::convertirDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public InventarioRespuestaDTO obtener(
-            Long id
-    ) {
-
+    public InventarioRespuestaDTO obtener(Long id) {
         return convertirDTO(
-                buscarInventario(id)
+                inventarioRepository.findByIdAndTiendaId(id, tenantService.obtenerTenantId())
+                        .orElseThrow(this::noEncontrado)
         );
     }
 
     @Transactional
-    public InventarioRespuestaDTO actualizar(
-            Long id,
-            ActualizarInventarioDTO dto
-    ) {
+    public InventarioRespuestaDTO actualizar(Long id, ActualizarInventarioDTO dto) {
+        Inventario inventario = buscarBloqueado(id);
+        inventario.setCantidad(dto.getCantidad());
+        inventario.setCantidadMinima(dto.getCantidadMinima());
+        return convertirDTO(inventarioRepository.save(inventario));
+    }
 
-        Inventario inventario =
-                buscarInventario(id);
-
-        inventario.setCantidad(
-                dto.getCantidad()
-        );
-
-        inventario.setCantidadMinima(
-                dto.getCantidadMinima()
-        );
-
-        return convertirDTO(
-                inventarioRepository.save(inventario)
-        );
+    /** Permite cambiar entre stock general y por variantes una vez que el stock es cero. */
+    @Transactional
+    public void eliminar(Long id) {
+        Inventario inventario = buscarBloqueado(id);
+        if (inventario.getCantidad() > 0) {
+            throw new ReglaNegocioException(
+                    "Solo se puede eliminar un registro de inventario con stock cero");
+        }
+        inventarioRepository.delete(inventario);
     }
 
     @Transactional(readOnly = true)
-    public List<InventarioRespuestaDTO>
-    listarStockBajo() {
-
-        Long tiendaId =
-                tenantService.obtenerTenantId();
-
-        return inventarioRepository
-                .findByTiendaId(tiendaId)
+    public List<InventarioRespuestaDTO> listarStockBajo() {
+        return inventarioRepository.findByTiendaId(tenantService.obtenerTenantId())
                 .stream()
-                .filter(inventario ->
-                        inventario.getCantidad()
-                                <=
-                        inventario.getCantidadMinima()
-                )
+                .filter(inventario -> inventario.getCantidad() <= inventario.getCantidadMinima())
                 .map(this::convertirDTO)
                 .toList();
     }
 
-    private Inventario buscarInventario(
-            Long id
-    ) {
-
-        Long tiendaId =
-                tenantService.obtenerTenantId();
-
+    private Inventario buscarBloqueado(Long id) {
         return inventarioRepository
-                .findByIdAndTiendaId(
-                        id,
-                        tiendaId
-                )
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "Registro de inventario no encontrado"
-                        )
-                );
+                .findWithLockByIdAndTiendaId(id, tenantService.obtenerTenantId())
+                .orElseThrow(this::noEncontrado);
     }
 
-    private Producto buscarProducto(
-            Long productoId,
-            Long tiendaId
-    ) {
-
-        return productoRepository
-                .findByIdAndTiendaId(
-                        productoId,
-                        tiendaId
-                )
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "Producto no encontrado"
-                        )
-                );
+    private RecursoNoEncontradoException noEncontrado() {
+        return new RecursoNoEncontradoException("Registro de inventario no encontrado");
     }
 
-    private Variante obtenerVariante(
-            Producto producto,
-            Long varianteId
-    ) {
-
+    private Variante obtenerVariante(Producto producto, Long varianteId) {
         if (varianteId == null) {
             return null;
         }
-
-        return varianteRepository
-                .findByIdAndProductoId(
-                        varianteId,
-                        producto.getId()
-                )
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "La variante no pertenece al producto"
-                        )
-                );
+        return varianteRepository.findByIdAndProductoId(varianteId, producto.getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "La variante no pertenece al producto"));
     }
 
-    private void validarDuplicado(
-            Long tiendaId,
-            Long productoId,
-            Long varianteId
-    ) {
-
-        boolean existe;
-
-        if (varianteId == null) {
-
-            existe =
-                    inventarioRepository
-                    .existsByTiendaIdAndProductoIdAndVarianteIsNull(
-                            tiendaId,
-                            productoId
-                    );
-
-        } else {
-
-            existe =
-                    inventarioRepository
-                    .existsByTiendaIdAndProductoIdAndVarianteId(
-                            tiendaId,
-                            productoId,
-                            varianteId
-                    );
+    /** Un producto usa stock general o stock por variantes, nunca ambos. */
+    private void validarFormaDeGestion(Long productoId, Variante variante) {
+        if (variante == null) {
+            if (inventarioRepository.existsByProductoIdAndVarianteIsNotNull(productoId)) {
+                throw new ReglaNegocioException(
+                        "El producto ya gestiona su inventario por variantes");
+            }
+            if (inventarioRepository.existsByProductoIdAndVarianteIsNull(productoId)) {
+                throw new ReglaNegocioException(
+                        "Ya existe el inventario general de este producto");
+            }
+            return;
         }
 
-        if (existe) {
+        if (inventarioRepository.existsByProductoIdAndVarianteIsNull(productoId)) {
             throw new ReglaNegocioException(
-                    "Ya existe un registro de inventario " +
-                    "para este producto o variante"
-            );
+                    "El producto ya gestiona su inventario de forma general");
+        }
+        if (inventarioRepository.existsByProductoIdAndVarianteId(productoId, variante.getId())) {
+            throw new ReglaNegocioException("Ya existe el inventario de esta variante");
         }
     }
 
-    private InventarioRespuestaDTO convertirDTO(
-            Inventario inventario
-    ) {
-
-        Variante variante =
-                inventario.getVariante();
+    private InventarioRespuestaDTO convertirDTO(Inventario inventario) {
+        Variante variante = inventario.getVariante();
 
         return InventarioRespuestaDTO.builder()
                 .id(inventario.getId())
-                .productoId(
-                        inventario.getProducto().getId()
-                )
-                .productoNombre(
-                        inventario.getProducto().getNombre()
-                )
-                .varianteId(
-                        variante != null
-                                ? variante.getId()
-                                : null
-                )
-                .varianteNombre(
-                        variante != null
-                                ? variante.getNombre()
-                                : null
-                )
+                .productoId(inventario.getProducto().getId())
+                .productoNombre(inventario.getProducto().getNombre())
+                .varianteId(variante != null ? variante.getId() : null)
+                .varianteNombre(variante != null ? variante.getNombre() : null)
                 .cantidad(inventario.getCantidad())
-                .cantidadMinima(
-                        inventario.getCantidadMinima()
-                )
-                .stockBajo(
-                        inventario.getCantidad()
-                                <=
-                        inventario.getCantidadMinima()
-                )
-                .actualizadoEn(
-                        inventario.getActualizadoEn()
-                )
+                .cantidadMinima(inventario.getCantidadMinima())
+                .stockBajo(inventario.getCantidad() <= inventario.getCantidadMinima())
+                .actualizadoEn(inventario.getActualizadoEn())
                 .build();
     }
 }

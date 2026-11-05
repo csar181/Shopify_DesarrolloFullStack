@@ -11,6 +11,8 @@ public interface ImagenProductoRepository
 
     List<ImagenProducto> findByProductoId(Long productoId);
 
+    long countByProductoId(Long productoId);
+
     Optional<ImagenProducto> findByIdAndProductoId(
             Long id,
             Long productoId

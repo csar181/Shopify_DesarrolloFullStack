@@ -1,5 +1,6 @@
 package com.shopcloud.usuario.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.shopcloud.security.UsuarioPrincipal;
 
 import com.shopcloud.usuario.dto.ActualizarUsuarioDTO;
@@ -17,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@PreAuthorize("hasRole('PROPIETARIO_TIENDA')")
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {

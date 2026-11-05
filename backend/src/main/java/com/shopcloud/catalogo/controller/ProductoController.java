@@ -69,6 +69,11 @@ public class ProductoController {
         );
     }
 
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<ProductoRespuestaDTO> activar(@PathVariable Long id) {
+        return ResponseEntity.ok(productoService.activar(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(
             @PathVariable Long id

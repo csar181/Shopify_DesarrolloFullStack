@@ -1,5 +1,6 @@
 package com.shopcloud.auth.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.shopcloud.auth.dto.AuthRespuestaDTO;
 import com.shopcloud.auth.dto.LoginDTO;
 import com.shopcloud.auth.dto.RegistroDTO;
@@ -49,6 +50,7 @@ public class AuthController {
         );
     }
 
+    @PreAuthorize("hasRole('PROPIETARIO_TIENDA')")
     @GetMapping("/me")
     public ResponseEntity<UsuarioRespuestaDTO> me(
             @AuthenticationPrincipal

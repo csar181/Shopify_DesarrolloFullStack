@@ -1,28 +1,20 @@
 package com.shopcloud.cliente.service;
 
+import com.shopcloud.cliente.dto.ActualizarPerfilClienteDTO;
 import com.shopcloud.cliente.dto.ClienteDTO;
 import com.shopcloud.cliente.entity.Cliente;
 import com.shopcloud.cliente.repository.ClienteRepository;
-
-import com.shopcloud.exception.RecursoNoEncontradoException;
 import com.shopcloud.exception.AccesoDenegadoException;
-
-import com.shopcloud.security.UsuarioPrincipal;
-
+import com.shopcloud.exception.RecursoNoEncontradoException;
+import com.shopcloud.security.ClientePrincipal;
 import com.shopcloud.tenant.TenantService;
-import com.shopcloud.tienda.entity.Tienda;
-import com.shopcloud.usuario.entity.Usuario;
-import com.shopcloud.usuario.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,35 +22,39 @@ public class ClienteService {
 
     private final ClienteRepository clienteRepository;
     private final TenantService tenantService;
-    private final UsuarioRepository usuarioRepository;
 
-    @Transactional
-    public Cliente obtenerOCrearClienteActual() {
+    /** El cliente de la sesión, siempre dentro de la tienda del contexto. */
+    @Transactional(readOnly = true)
+    public Cliente obtenerClienteActual() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        Long tiendaId = tenantService.obtenerTenantId();
-        Long usuarioId = obtenerUsuarioIdAutenticado();
+        if (authentication == null
+                || !(authentication.getPrincipal() instanceof ClientePrincipal principal)) {
+            throw new AccesoDenegadoException("Cliente no autenticado");
+        }
 
         return clienteRepository
-                .findByUsuarioIdAndTiendaId(usuarioId, tiendaId)
-                .orElseGet(() -> crearClienteActual(usuarioId));
+                .findByIdAndTiendaId(principal.getId(), tenantService.obtenerTenantId())
+                .orElseThrow(() -> new AccesoDenegadoException(
+                        "La sesión no pertenece a esta tienda"));
     }
 
     @Transactional(readOnly = true)
-    public Optional<Cliente> obtenerClienteActualSiExiste() {
-        return clienteRepository.findByUsuarioIdAndTiendaId(
-                obtenerUsuarioIdAutenticado(),
-                tenantService.obtenerTenantId()
-        );
+    public ClienteDTO obtenerPerfil() {
+        return convertirDTO(obtenerClienteActual());
+    }
+
+    @Transactional
+    public ClienteDTO actualizarPerfil(ActualizarPerfilClienteDTO dto) {
+        Cliente cliente = obtenerClienteActual();
+        cliente.setNombre(dto.getNombre().trim());
+        cliente.setTelefono(dto.getTelefono());
+        return convertirDTO(clienteRepository.save(cliente));
     }
 
     @Transactional(readOnly = true)
     public List<ClienteDTO> listar() {
-
-        Long tiendaId =
-                tenantService.obtenerTenantId();
-
-        return clienteRepository
-                .findByTiendaId(tiendaId)
+        return clienteRepository.findByTiendaId(tenantService.obtenerTenantId())
                 .stream()
                 .map(this::convertirDTO)
                 .toList();
@@ -66,77 +62,21 @@ public class ClienteService {
 
     @Transactional(readOnly = true)
     public ClienteDTO obtener(Long id) {
-
-        return convertirDTO(
-                buscarCliente(id)
-        );
+        return convertirDTO(buscarCliente(id));
     }
 
     @Transactional(readOnly = true)
     public Cliente buscarCliente(Long id) {
-
-        Long tiendaId =
-                tenantService.obtenerTenantId();
-
-        return clienteRepository
-                .findByIdAndTiendaId(
-                        id,
-                        tiendaId
-                )
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException(
-                                "Cliente no encontrado"
-                        )
-                );
+        return clienteRepository.findByIdAndTiendaId(id, tenantService.obtenerTenantId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
     }
 
-    private Cliente crearClienteActual(Long usuarioId) {
-
-        Usuario usuario = usuarioRepository
-                .findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "Usuario autenticado no encontrado"
-                ));
-
-        Tienda tienda = tenantService.obtenerTiendaActual();
-
-        return clienteRepository.save(
-                Cliente.builder()
-                        .tienda(tienda)
-                        .usuario(usuario)
-                        .nombre(usuario.getNombre())
-                        .correoElectronico(usuario.getCorreoElectronico())
-                        .build()
-        );
-    }
-
-    private Long obtenerUsuarioIdAutenticado() {
-
-        Authentication authentication = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || !(authentication.getPrincipal() instanceof UsuarioPrincipal principal)) {
-            throw new AccesoDenegadoException("Usuario no autenticado");
-        }
-
-        return principal.getId();
-    }
-
-    private ClienteDTO convertirDTO(
-            Cliente cliente
-    ) {
-
+    private ClienteDTO convertirDTO(Cliente cliente) {
         return ClienteDTO.builder()
                 .id(cliente.getId())
                 .nombre(cliente.getNombre())
-                .correoElectronico(
-                        cliente.getCorreoElectronico()
-                )
+                .correoElectronico(cliente.getCorreoElectronico())
                 .telefono(cliente.getTelefono())
                 .build();
     }
-
 }

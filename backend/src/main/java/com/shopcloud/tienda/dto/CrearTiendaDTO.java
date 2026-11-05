@@ -2,6 +2,7 @@ package com.shopcloud.tienda.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CrearTiendaDTO {
+
+    /** Plan elegido para los 7 días de prueba gratuita. */
+    @NotNull(message = "El plan es obligatorio")
+    private Long planId;
 
     @NotBlank(message = "El nombre de la tienda es obligatorio")
     @Size(max = 150)

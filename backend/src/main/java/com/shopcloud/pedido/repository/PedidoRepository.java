@@ -18,9 +18,18 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     Optional<Pedido> findByIdAndClienteIdAndTiendaId(
             Long pedidoId, Long clienteId, Long tiendaId);
 
+    List<Pedido> findByTiendaIdOrderByCreadoEnDesc(Long tiendaId);
+
+    List<Pedido> findByTiendaIdAndEstadoOrderByCreadoEnDesc(Long tiendaId, String estado);
+
+    Optional<Pedido> findByIdAndTiendaId(Long pedidoId, Long tiendaId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Pedido> findWithLockByIdAndClienteIdAndTiendaId(
-            Long pedidoId, Long clienteId, Long tiendaId);
+    Optional<Pedido> findWithLockByIdAndTiendaId(Long pedidoId, Long tiendaId);
+
+    boolean existsByDireccionId(Long direccionId);
+
+    boolean existsByDatosFacturacionId(Long datosFacturacionId);
 
     interface ResumenPedidoDiarioProjection {
         LocalDate getFecha();
@@ -42,7 +51,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
                    COALESCE(SUM(p.total), 0) AS "montoVentas"
             FROM pedidos p
             WHERE p.tienda_id = :tiendaId
-              AND p.estado = 'PAGADO'
+              AND p.estado IN ('CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO')
               AND p.creado_en >= :inicio
               AND p.creado_en < :finExclusivo
             GROUP BY CAST(p.creado_en AS date)
@@ -59,7 +68,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
                    COALESCE(SUM(p.total), 0) AS "montoVentas"
             FROM pedidos p
             WHERE p.tienda_id = :tiendaId
-              AND p.estado = 'PAGADO'
+              AND p.estado IN ('CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO')
               AND p.creado_en >= :inicio
               AND p.creado_en < :finExclusivo
             """, nativeQuery = true)

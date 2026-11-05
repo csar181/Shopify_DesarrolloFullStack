@@ -4,7 +4,6 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -12,17 +11,16 @@ import java.time.LocalDateTime;
 public class SuscripcionRespuestaDTO {
 
     private Long id;
-
     private Long tiendaId;
-
     private Long planId;
     private String planNombre;
     private BigDecimal planPrecio;
-
+    private String tipo;
     private String estado;
-
-    private LocalDate fechaInicio;
-    private LocalDate fechaFin;
-
+    private Boolean vigente;
+    private LocalDateTime fechaInicio;
+    private LocalDateTime fechaFin;
+    private BigDecimal montoPagado;
+    private LocalDateTime pagadoEn;
     private LocalDateTime creadoEn;
 }

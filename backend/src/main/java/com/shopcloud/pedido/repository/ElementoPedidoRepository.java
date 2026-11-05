@@ -30,7 +30,7 @@ public interface ElementoPedidoRepository extends JpaRepository<ElementoPedido, 
             FROM elementos_pedido ep
             JOIN pedidos p ON p.id = ep.pedido_id
             WHERE p.tienda_id = :tiendaId
-              AND p.estado = 'PAGADO'
+              AND p.estado IN ('CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO')
               AND p.creado_en >= :inicio
               AND p.creado_en < :finExclusivo
             GROUP BY CAST(p.creado_en AS date)
@@ -45,7 +45,7 @@ public interface ElementoPedidoRepository extends JpaRepository<ElementoPedido, 
             FROM elementos_pedido ep
             JOIN pedidos p ON p.id = ep.pedido_id
             WHERE p.tienda_id = :tiendaId
-              AND p.estado = 'PAGADO'
+              AND p.estado IN ('CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO')
               AND p.creado_en >= :inicio
               AND p.creado_en < :finExclusivo
             """, nativeQuery = true)
@@ -62,7 +62,7 @@ public interface ElementoPedidoRepository extends JpaRepository<ElementoPedido, 
             FROM elementos_pedido ep
             JOIN pedidos p ON p.id = ep.pedido_id
             WHERE p.tienda_id = :tiendaId
-              AND p.estado = 'PAGADO'
+              AND p.estado IN ('CONFIRMADO', 'PREPARANDO', 'ENVIADO', 'ENTREGADO')
               AND p.creado_en >= :inicio
               AND p.creado_en < :finExclusivo
             GROUP BY ep.producto_id

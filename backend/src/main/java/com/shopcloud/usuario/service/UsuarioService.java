@@ -4,7 +4,8 @@ import com.shopcloud.exception.RecursoNoEncontradoException;
 import com.shopcloud.exception.ReglaNegocioException;
 import com.shopcloud.usuario.dto.ActualizarUsuarioDTO;
 import com.shopcloud.usuario.dto.UsuarioDTO;
-import com.shopcloud.usuario.entity.Rol;
+import com.shopcloud.security.UsuarioPrincipal;
+import java.util.List;
 import com.shopcloud.usuario.entity.Usuario;
 import com.shopcloud.usuario.repository.UsuarioRepository;
 
@@ -82,13 +83,7 @@ public class UsuarioService {
                         usuario.getCorreoElectronico()
                 )
                 .activo(usuario.getActivo())
-                .roles(
-                        usuario.getRoles()
-                                .stream()
-                                .map(Rol::getNombre)
-                                .sorted()
-                                .toList()
-                )
+                .roles(List.of(UsuarioPrincipal.ROL_PROPIETARIO))
                 .creadoEn(usuario.getCreadoEn())
                 .actualizadoEn(
                         usuario.getActualizadoEn()

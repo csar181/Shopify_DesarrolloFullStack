@@ -1,10 +1,12 @@
 package com.shopcloud.cliente.entity;
 
 import com.shopcloud.tienda.entity.Tienda;
-import com.shopcloud.usuario.entity.Usuario;
-
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -25,28 +27,41 @@ public class Cliente {
     @JoinColumn(name = "tienda_id", nullable = false)
     private Tienda tienda;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id")
-    private Usuario usuario;
-
     @Column(nullable = false, length = 150)
     private String nombre;
 
-    @Column(
-            name = "correo_electronico",
-            nullable = false,
-            length = 150
-    )
+    @Column(name = "correo_electronico", nullable = false, length = 150)
     private String correoElectronico;
+
+    @Column(nullable = false, length = 255)
+    private String contrasena;
 
     @Column(length = 30)
     private String telefono;
 
-    @Column(
-            name = "creado_en",
-            nullable = false,
-            insertable = false,
-            updatable = false
-    )
+    @Column(nullable = false)
+    private Boolean activo;
+
+    @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
+
+    @Column(name = "actualizado_en", nullable = false)
+    private LocalDateTime actualizadoEn;
+
+    @PrePersist
+    protected void prePersist() {
+        LocalDateTime ahora = LocalDateTime.now();
+        if (creadoEn == null) {
+            creadoEn = ahora;
+        }
+        actualizadoEn = ahora;
+        if (activo == null) {
+            activo = true;
+        }
+    }
+
+    @PreUpdate
+    protected void preUpdate() {
+        actualizadoEn = LocalDateTime.now();
+    }
 }

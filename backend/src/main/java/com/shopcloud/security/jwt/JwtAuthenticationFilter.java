@@ -1,19 +1,17 @@
 package com.shopcloud.security.jwt;
 
-import com.shopcloud.security.CustomUserDetailsService;
-
+import com.shopcloud.cliente.repository.ClienteRepository;
+import com.shopcloud.security.ClientePrincipal;
+import com.shopcloud.security.UsuarioPrincipal;
+import com.shopcloud.usuario.repository.UsuarioRepository;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,12 +20,11 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter
-        extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-
-    private final CustomUserDetailsService userDetailsService;
+    private final UsuarioRepository usuarioRepository;
+    private final ClienteRepository clienteRepository;
 
     @Override
     protected void doFilterInternal(
@@ -36,64 +33,47 @@ public class JwtAuthenticationFilter
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String authHeader =
-                request.getHeader("Authorization");
+        String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null ||
-                !authHeader.startsWith("Bearer ")) {
-
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        final String jwt = authHeader.substring(7);
-
-        try {
-
-            final String correo =
-                    jwtService.extraerCorreo(jwt);
-
-            if (correo != null &&
-                    SecurityContextHolder
-                            .getContext()
-                            .getAuthentication() == null) {
-
-                UserDetails userDetails =
-                        userDetailsService
-                                .loadUserByUsername(correo);
-
-                if (jwtService.esTokenValido(
-                        jwt,
-                        userDetails
-                )) {
-
-                    UsernamePasswordAuthenticationToken
-                            authenticationToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
-
-                    authenticationToken.setDetails(
-                            new WebAuthenticationDetailsSource()
-                                    .buildDetails(request)
-                    );
-
-                    SecurityContextHolder
-                            .getContext()
-                            .setAuthentication(
-                                    authenticationToken
-                            );
-                }
+        if (authHeader != null && authHeader.startsWith("Bearer ")
+                && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                autenticar(authHeader.substring(7), request);
+            } catch (Exception ignored) {
+                // Un JWT inválido no autentica: Spring Security decide si la ruta es pública.
             }
-
-        } catch (Exception ignored) {
-            // Un JWT inválido no autentica al usuario.
-            // Spring Security decidirá posteriormente
-            // si la ruta puede ser accedida.
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void autenticar(String token, HttpServletRequest request) {
+        Claims claims = jwtService.validar(token);
+        Long id = Long.valueOf(claims.getSubject());
+        String tipo = claims.get(JwtService.CLAIM_TIPO, String.class);
+
+        UsernamePasswordAuthenticationToken autenticacion = null;
+
+        if (JwtService.TIPO_USUARIO.equals(tipo)) {
+            autenticacion = usuarioRepository.findById(id)
+                    .map(UsuarioPrincipal::new)
+                    .filter(UsuarioPrincipal::isEnabled)
+                    .map(principal -> new UsernamePasswordAuthenticationToken(
+                            principal, null, principal.getAuthorities()))
+                    .orElse(null);
+        } else if (JwtService.TIPO_CLIENTE.equals(tipo)) {
+            Long tiendaId = claims.get(JwtService.CLAIM_TIENDA, Long.class);
+            autenticacion = clienteRepository.findByIdAndTiendaId(id, tiendaId)
+                    .filter(cliente -> Boolean.TRUE.equals(cliente.getActivo()))
+                    .map(cliente -> new ClientePrincipal(id, tiendaId))
+                    .map(principal -> new UsernamePasswordAuthenticationToken(
+                            principal, null, principal.getAuthorities()))
+                    .orElse(null);
+        }
+
+        if (autenticacion != null) {
+            autenticacion.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(autenticacion);
+        }
     }
 }

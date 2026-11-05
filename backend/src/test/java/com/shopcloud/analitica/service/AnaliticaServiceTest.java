@@ -1,9 +1,9 @@
 package com.shopcloud.analitica.service;
 
 import com.shopcloud.analitica.dto.DashboardDTO;
-import com.shopcloud.analitica.repository.AnaliticaVentaRepository;
 import com.shopcloud.pedido.repository.ElementoPedidoRepository;
 import com.shopcloud.pedido.repository.PedidoRepository;
+import com.shopcloud.plan.service.LimitesPlanService;
 import com.shopcloud.tenant.TenantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,16 +26,16 @@ class AnaliticaServiceTest {
     private static final LocalDate DESDE = LocalDate.of(2026, 9, 1);
     private static final LocalDate HASTA = LocalDate.of(2026, 9, 30);
 
-    @Mock private AnaliticaVentaRepository analiticaVentaRepository;
     @Mock private PedidoRepository pedidoRepository;
     @Mock private ElementoPedidoRepository elementoPedidoRepository;
     @Mock private TenantService tenantService;
+    @Mock private LimitesPlanService limitesPlanService;
     private AnaliticaService service;
 
     @BeforeEach
     void setUp() {
-        service = new AnaliticaService(analiticaVentaRepository, pedidoRepository,
-                elementoPedidoRepository, tenantService);
+        service = new AnaliticaService(pedidoRepository,
+                elementoPedidoRepository, tenantService, limitesPlanService);
         lenient().when(tenantService.obtenerTenantId()).thenReturn(TIENDA_ID);
         lenient().when(pedidoRepository.resumirVentasDiarias(
                 anyLong(), any(LocalDateTime.class), any(LocalDateTime.class)))
@@ -124,30 +124,11 @@ class AnaliticaServiceTest {
     }
 
     @Test
-    void recalcularDosVecesReemplazaYNoAcumula() {
-        PedidoRepository.ResumenPedidoDiarioProjection dia = resumenDiario(
-                LocalDate.of(2026, 9, 28), 1L, 1L, "179.80");
-        when(pedidoRepository.resumirVentasDiarias(anyLong(), any(), any()))
-                .thenReturn(List.of(dia));
-        prepararDashboard(1L, 1L, 2L, "179.80");
-
-        service.obtenerDashboard(DESDE, HASTA);
-        service.obtenerDashboard(DESDE, HASTA);
-
-        verify(analiticaVentaRepository, times(2)).deleteByTiendaIdAndFechaBetween(
-                TIENDA_ID, DESDE, HASTA);
-        verify(analiticaVentaRepository, times(2)).guardarResumen(
-                eq(TIENDA_ID), eq(LocalDate.of(2026, 9, 28)), eq(1), eq(0),
-                eq(1), eq(new BigDecimal("179.80")));
-    }
-
-    @Test
     void rangoInvalidoProduceErrorDeValidacion() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> service.obtenerDashboard(HASTA, DESDE));
         assertEquals("desde no puede ser posterior a hasta", error.getMessage());
-        verifyNoInteractions(pedidoRepository, elementoPedidoRepository,
-                analiticaVentaRepository);
+        verifyNoInteractions(pedidoRepository, elementoPedidoRepository);
     }
 
     private void prepararDashboard(long pedidos, long clientes, long unidades,
