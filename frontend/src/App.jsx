@@ -6,7 +6,10 @@ import { TiendaProvider } from './context/TiendaContext'
 import PanelLayout from './layouts/PanelLayout'
 import PublicoLayout from './layouts/PublicoLayout'
 import TiendaPublicaLayout from './layouts/TiendaPublicaLayout'
+import AccesoCliente from './pages/tienda/AccesoCliente'
 import Carrito from './pages/tienda/Carrito'
+import Checkout from './pages/tienda/Checkout'
+import PedidoCliente from './pages/tienda/PedidoCliente'
 import Catalogo from './pages/tienda/Catalogo'
 import ProductoPublico from './pages/tienda/ProductoPublico'
 import Inicio from './pages/Inicio'
@@ -20,6 +23,7 @@ import Inventario from './pages/panel/catalogo/Inventario'
 import NuevoProducto from './pages/panel/catalogo/NuevoProducto'
 import Productos from './pages/panel/catalogo/Productos'
 import InicioPanel from './pages/panel/InicioPanel'
+import MetodosPago from './pages/panel/MetodosPago'
 import Suscripcion from './pages/panel/Suscripcion'
 import MisTiendas from './pages/panel/tiendas/MisTiendas'
 import NuevaTienda from './pages/panel/tiendas/NuevaTienda'
@@ -45,6 +49,10 @@ export default function App() {
             <Route index element={<Catalogo />} />
             <Route path="producto/:id" element={<ProductoPublico />} />
             <Route path="carrito" element={<Carrito />} />
+            <Route path="ingresar" element={<AccesoCliente modo="ingreso" />} />
+            <Route path="registro" element={<AccesoCliente modo="registro" />} />
+            <Route path="checkout" element={<Checkout />} />
+            <Route path="pedido/:id" element={<PedidoCliente />} />
           </Route>
 
           <Route element={<RutaProtegida />}>
@@ -64,6 +72,7 @@ export default function App() {
               <Route element={<RequiereTienda />}>
                 <Route path="configuracion" element={<ConfiguracionTienda />} />
                 <Route path="suscripcion" element={<Suscripcion />} />
+                <Route path="metodos-pago" element={<MetodosPago />} />
                 <Route path="categorias" element={<Categorias />} />
                 <Route path="productos" element={<Productos />} />
                 <Route path="productos/nuevo" element={<NuevoProducto />} />

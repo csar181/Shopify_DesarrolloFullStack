@@ -46,23 +46,36 @@ function Compra({ producto }) {
   const [varianteId, setVarianteId] = useState(() => producto.variantes.find((v) => v.stock > 0)?.id ?? null)
   const [cantidad, setCantidad] = useState(1)
   const [agregado, setAgregado] = useState('')
+  const [error, setError] = useState('')
+  const [agregando, setAgregando] = useState(false)
 
   const variante = producto.variantes.find((v) => v.id === varianteId) ?? null
   const stock = tieneVariantes ? (variante?.stock ?? 0) : producto.stock
   // Lo que ya está en el carrito también cuenta contra el stock.
   const disponible = Math.max(0, stock - enCarrito(producto.id, variante?.id ?? null))
-  const puedeAgregar = (!tieneVariantes || variante) && disponible > 0
+  const puedeAgregar = (!tieneVariantes || variante) && disponible > 0 && !agregando
 
   function elegirVariante(id) {
     setVarianteId(id)
     setCantidad(1)
     setAgregado('')
+    setError('')
   }
 
-  function agregarAlCarrito() {
-    agregar({ productoId: producto.id, varianteId: variante?.id ?? null, cantidad })
-    setAgregado(`${cantidad} ${cantidad === 1 ? 'unidad agregada' : 'unidades agregadas'} al carrito.`)
-    setCantidad(1)
+  // Con sesión iniciada, el backend valida el stock y puede rechazarlo.
+  async function agregarAlCarrito() {
+    setAgregando(true)
+    setAgregado('')
+    setError('')
+    try {
+      await agregar({ productoId: producto.id, varianteId: variante?.id ?? null, cantidad })
+      setAgregado(`${cantidad} ${cantidad === 1 ? 'unidad agregada' : 'unidades agregadas'} al carrito.`)
+      setCantidad(1)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setAgregando(false)
+    }
   }
 
   return (
@@ -116,6 +129,7 @@ function Compra({ producto }) {
         </div>
       )}
 
+      <Alerta>{error}</Alerta>
       {agregado && (
         <Alerta tipo="exito">
           {agregado}{' '}

@@ -43,6 +43,16 @@ export const tiendaActual = {
 }
 
 /**
+ * Sesión del cliente de una tienda: { token, cliente: { id, nombre, correoElectronico } }.
+ * Es independiente de la del propietario: el mismo correo puede tener cuentas distintas en cada tienda.
+ */
+export const sesionCliente = {
+  obtener: (slug) => leer(`shopcloud.cliente.${slug}`),
+  guardar: (slug, sesion) => escribir(`shopcloud.cliente.${slug}`, sesion),
+  borrar: (slug) => escribir(`shopcloud.cliente.${slug}`, null),
+}
+
+/**
  * Carrito de un visitante en una tienda, antes de iniciar sesión: [{ productoId, varianteId, cantidad }].
  * Es el mismo formato que POST /api/carrito/sincronizar. Solo guarda qué y cuánto:
  * precios y stock se leen siempre del catálogo.
