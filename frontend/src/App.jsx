@@ -24,6 +24,10 @@ import NuevoProducto from './pages/panel/catalogo/NuevoProducto'
 import Productos from './pages/panel/catalogo/Productos'
 import InicioPanel from './pages/panel/InicioPanel'
 import MetodosPago from './pages/panel/MetodosPago'
+import Clientes from './pages/panel/clientes/Clientes'
+import DetalleCliente from './pages/panel/clientes/DetalleCliente'
+import DetallePedidoPanel from './pages/panel/pedidos/DetallePedidoPanel'
+import Pedidos from './pages/panel/pedidos/Pedidos'
 import Suscripcion from './pages/panel/Suscripcion'
 import MisTiendas from './pages/panel/tiendas/MisTiendas'
 import NuevaTienda from './pages/panel/tiendas/NuevaTienda'
@@ -78,6 +82,10 @@ export default function App() {
                 <Route path="productos/nuevo" element={<NuevoProducto />} />
                 <Route path="productos/:id" element={<DetalleProducto />} />
                 <Route path="inventario" element={<Inventario />} />
+                <Route path="pedidos" element={<Pedidos />} />
+                <Route path="pedidos/:id" element={<DetallePedidoPanel />} />
+                <Route path="clientes" element={<Clientes />} />
+                <Route path="clientes/:id" element={<DetalleCliente />} />
               </Route>
             </Route>
           </Route>
