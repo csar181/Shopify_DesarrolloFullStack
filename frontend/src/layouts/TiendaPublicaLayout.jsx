@@ -19,7 +19,7 @@ function NoDisponible({ mensaje }) {
 }
 
 function Estructura() {
-  const { slug, tienda, cargando, error, cantidadEnCarrito } = useTiendaPublica()
+  const { slug, tienda, cargando, error, cantidadEnCarrito, cliente, salir } = useTiendaPublica()
 
   useEffect(() => {
     if (tienda) document.title = tienda.nombre
@@ -50,6 +50,19 @@ function Estructura() {
             <LogoTienda key={tienda.urlLogo} tienda={tienda} className="size-9" />
             <span className="truncate text-lg font-semibold text-slate-900">{tienda.nombre}</span>
           </Link>
+          <div className="flex shrink-0 items-center gap-2">
+          {cliente ? (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="hidden max-w-40 truncate text-slate-600 sm:inline">Hola, {cliente.nombre.split(' ')[0]}</span>
+              <button type="button" onClick={salir} className="rounded-lg px-2 py-2 font-medium text-slate-600 hover:bg-slate-100">
+                Salir
+              </button>
+            </div>
+          ) : (
+            <Link to={`${base}/ingresar`} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+              Ingresar
+            </Link>
+          )}
           <Link
             to={`${base}/carrito`}
             className="relative flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -62,6 +75,7 @@ function Estructura() {
               {cantidadEnCarrito}
             </span>
           </Link>
+          </div>
         </div>
       </header>
 
