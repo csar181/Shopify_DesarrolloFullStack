@@ -67,8 +67,8 @@ Todas exigen `X-Tenant-ID`, salvo `/api/tiendas` y `/api/usuarios`.
 | **Cuenta** | `GET /api/auth/me`, `GET` y `PUT /api/usuarios/perfil` |
 | **Tiendas** | `POST /api/tiendas` (requiere `planId` e inicia la prueba de 7 días), `GET /api/tiendas/mis-tiendas`, `GET`, `PUT` y `DELETE /api/tiendas/{id}`, `PATCH /api/tiendas/{id}/activar` |
 | **Suscripción** | `POST /api/suscripciones/contratar` (pago simulado o renovación), `PUT /api/suscripciones/cambiar-plan` (solo en prueba), `GET /api/suscripciones` (historial), `GET` y `DELETE /api/suscripciones/activa` |
-| **Categorías** | `POST` y `GET /api/categorias`, `GET`, `PUT` y `DELETE /api/categorias/{id}`, `PATCH /api/categorias/{id}/activar` |
-| **Productos** | `POST` y `GET /api/productos`, `GET`, `PUT` y `DELETE /api/productos/{id}`, `PATCH /api/productos/{id}/activar` |
+| **Categorías** | `POST` y `GET /api/categorias?incluirInactivos=`, `GET`, `PUT` y `DELETE /api/categorias/{id}`, `PATCH /api/categorias/{id}/activar` |
+| **Productos** | `POST` y `GET /api/productos?incluirInactivos=`, `GET`, `PUT` y `DELETE /api/productos/{id}`, `PATCH /api/productos/{id}/activar` |
 | **Variantes** | `POST` y `GET /api/productos/{id}/variantes`, `GET`, `PUT` y `DELETE /api/productos/{id}/variantes/{varianteId}` |
 | **Imágenes** | `POST` y `GET /api/productos/{id}/imagenes`, `PUT` y `DELETE /api/productos/{id}/imagenes/{imagenId}` |
 | **Inventario** | `POST` y `GET /api/inventario`, `GET /api/inventario/stock-bajo`, `GET`, `PUT` y `DELETE /api/inventario/{id}` (borrar exige stock cero) |
@@ -78,6 +78,8 @@ Todas exigen `X-Tenant-ID`, salvo `/api/tiendas` y `/api/usuarios`.
 | **Métodos de pago** | `POST` y `GET /api/gestion/metodos-pago`, `GET`, `PUT` y `DELETE /api/gestion/metodos-pago/{id}`, `PATCH /api/gestion/metodos-pago/{id}/activar` |
 | **Transacciones** | `GET /api/gestion/transacciones`, `GET /api/gestion/transacciones/{id}` |
 | **Estadísticas** | `GET /api/analitica/dashboard` (básicas), `/ventas` (intermedias), `/productos-mas-vendidos` (avanzadas). Admiten `desde` y `hasta` |
+
+`DELETE` en categorías y productos no borra: desactiva y libera el cupo del plan. Los listados devuelven solo los activos; con `incluirInactivos=true` incluyen también los desactivados, para reactivarlos con `PATCH .../activar` (que vuelve a comprobar el límite del plan).
 
 Estados de un pedido:
 
