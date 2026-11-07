@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import AvisosInventario from '../../components/inventario/AvisosInventario'
 import EstadoTienda from '../../components/tienda/EstadoTienda'
 import LogoTienda from '../../components/tienda/LogoTienda'
 import { useAuth } from '../../context/AuthContext'
@@ -59,6 +60,8 @@ export default function InicioPanel() {
         <Dato titulo="Dirección de la tienda">/tienda/{tienda.slug}</Dato>
         <Dato titulo="Creada">{formatearFecha(tienda.creadoEn)}</Dato>
       </dl>
+
+      <AvisosInventario key={tienda.id} />
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
