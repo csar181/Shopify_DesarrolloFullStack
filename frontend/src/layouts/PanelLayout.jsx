@@ -1,15 +1,29 @@
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import Logo from '../components/Logo'
+import AvisoTienda from '../components/tienda/AvisoTienda'
+import SelectorTienda from '../components/tienda/SelectorTienda'
+import Alerta from '../components/ui/Alerta'
 import Boton from '../components/ui/Boton'
 import { useAuth } from '../context/AuthContext'
+import { useTiendas } from '../context/TiendaContext'
 
-// Cada fase agrega aquí sus secciones (Tiendas, Productos, Pedidos...).
-const SECCIONES = [{ a: '/panel', texto: 'Inicio', exacta: true }]
+// Cada fase agrega aquí sus secciones (Productos, Pedidos...).
+// `requiereTienda`: solo se muestra si hay una tienda elegida.
+const SECCIONES = [
+  { a: '/panel', texto: 'Inicio', exacta: true },
+  { a: '/panel/configuracion', texto: 'Configuración', requiereTienda: true },
+  { a: '/panel/tiendas', texto: 'Mis tiendas' },
+]
 
 /** Panel del propietario: barra lateral en escritorio, barra superior en móvil. */
 export default function PanelLayout() {
   const { usuario, cerrarSesion } = useAuth()
+  const { tienda, cargando, error, recargar } = useTiendas()
   const navegar = useNavigate()
+  const { pathname } = useLocation()
+
+  // En "Mis tiendas" se ven todas, así que el aviso de la tienda actual no aplica.
+  const mostrarAviso = tienda && !pathname.startsWith('/panel/tiendas')
 
   function salir() {
     cerrarSesion()
@@ -23,7 +37,7 @@ export default function PanelLayout() {
           <Logo a="/panel" />
         </div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:pb-0">
-          {SECCIONES.map((seccion) => (
+          {SECCIONES.filter((s) => !s.requiereTienda || tienda).map((seccion) => (
             <NavLink
               key={seccion.a}
               to={seccion.a}
@@ -41,14 +55,32 @@ export default function PanelLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-end gap-3 border-b border-slate-200 bg-white px-4 py-3">
-          <span className="truncate text-sm text-slate-600">{usuario?.nombre}</span>
-          <Boton variante="secundario" onClick={salir}>
-            Cerrar sesión
-          </Boton>
+        <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+          <SelectorTienda />
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            <span className="hidden truncate text-sm text-slate-600 sm:inline">{usuario?.nombre}</span>
+            <Boton variante="secundario" onClick={salir}>
+              Cerrar sesión
+            </Boton>
+          </div>
         </header>
+
         <main className="flex-1 p-4 md:p-8">
-          <Outlet />
+          {cargando ? (
+            <p className="text-slate-500">Cargando tus tiendas…</p>
+          ) : error ? (
+            <div className="max-w-lg space-y-3">
+              <Alerta>{error}</Alerta>
+              <Boton variante="secundario" onClick={recargar}>
+                Reintentar
+              </Boton>
+            </div>
+          ) : (
+            <>
+              {mostrarAviso && <AvisoTienda tienda={tienda} />}
+              <Outlet />
+            </>
+          )}
         </main>
       </div>
     </div>
