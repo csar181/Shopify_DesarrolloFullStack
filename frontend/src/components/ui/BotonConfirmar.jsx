@@ -10,6 +10,8 @@ export default function BotonConfirmar({
   children,
   pregunta = '¿Seguro?',
   textoConfirmar = 'Sí, continuar',
+  // Rojo por defecto (desactivar, quitar...); 'primario' para confirmaciones no destructivas, como pagar.
+  varianteConfirmar = 'peligro',
   onConfirmar,
   disabled = false,
   className = '',
@@ -38,7 +40,7 @@ export default function BotonConfirmar({
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <span className="text-sm text-slate-700">{pregunta}</span>
-      <Boton variante="peligro" cargando={procesando} onClick={confirmar}>
+      <Boton variante={varianteConfirmar} cargando={procesando} onClick={confirmar}>
         {textoConfirmar}
       </Boton>
       <Boton variante="secundario" disabled={procesando} onClick={() => setConfirmando(false)}>
