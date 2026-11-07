@@ -9,6 +9,8 @@ import TiendaPublicaLayout from './layouts/TiendaPublicaLayout'
 import AccesoCliente from './pages/tienda/AccesoCliente'
 import Carrito from './pages/tienda/Carrito'
 import Checkout from './pages/tienda/Checkout'
+import MisDatos from './pages/tienda/MisDatos'
+import MisPedidos from './pages/tienda/MisPedidos'
 import PedidoCliente from './pages/tienda/PedidoCliente'
 import Catalogo from './pages/tienda/Catalogo'
 import ProductoPublico from './pages/tienda/ProductoPublico'
@@ -58,6 +60,8 @@ export default function App() {
             <Route path="registro" element={<AccesoCliente modo="registro" />} />
             <Route path="checkout" element={<Checkout />} />
             <Route path="pedido/:id" element={<PedidoCliente />} />
+            <Route path="cuenta" element={<MisDatos />} />
+            <Route path="cuenta/pedidos" element={<MisPedidos />} />
           </Route>
 
           <Route element={<RutaProtegida />}>

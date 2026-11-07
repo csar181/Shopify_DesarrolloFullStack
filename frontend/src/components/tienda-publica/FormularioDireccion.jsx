@@ -5,9 +5,17 @@ import Campo from '../ui/Campo'
 
 const VACIA = { lineaDireccion: '', distrito: '', ciudad: '', departamento: '', codigoPostal: '', referencia: '' }
 
-/** Dirección de envío del cliente. `onGuardar` recibe el cuerpo listo para la API y puede lanzar un ErrorApi. */
-export default function FormularioDireccion({ onGuardar, onCancelar }) {
-  const [datos, setDatos] = useState(VACIA)
+function desde(direccion) {
+  if (!direccion) return VACIA
+  return Object.fromEntries(Object.keys(VACIA).map((campo) => [campo, direccion[campo] ?? '']))
+}
+
+/**
+ * Dirección de envío del cliente: nueva o, con `inicial`, para editar.
+ * `onGuardar` recibe el cuerpo listo para la API y puede lanzar un ErrorApi.
+ */
+export default function FormularioDireccion({ inicial, textoBoton = 'Guardar dirección', onGuardar, onCancelar }) {
+  const [datos, setDatos] = useState(() => desde(inicial))
   const [errores, setErrores] = useState({})
   const [mensaje, setMensaje] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -26,6 +34,7 @@ export default function FormularioDireccion({ onGuardar, onCancelar }) {
     } catch (e) {
       setErrores(e.errores ?? {})
       setMensaje(Object.keys(e.errores ?? {}).length > 0 ? '' : e.message)
+    } finally {
       setEnviando(false)
     }
   }
@@ -51,7 +60,7 @@ export default function FormularioDireccion({ onGuardar, onCancelar }) {
           disabled={enviando}
           className="rounded-lg bg-(--tienda) px-4 py-2 text-sm font-medium text-(--tienda-texto) hover:brightness-95 disabled:opacity-60"
         >
-          {enviando ? 'Guardando…' : 'Guardar dirección'}
+          {enviando ? 'Guardando…' : textoBoton}
         </button>
         {onCancelar && (
           <button type="button" onClick={onCancelar} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">

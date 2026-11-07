@@ -53,7 +53,10 @@ function Estructura() {
           <div className="flex shrink-0 items-center gap-2">
           {cliente ? (
             <div className="flex items-center gap-2 text-sm">
-              <span className="hidden max-w-40 truncate text-slate-600 sm:inline">Hola, {cliente.nombre.split(' ')[0]}</span>
+              <Link to={`${base}/cuenta/pedidos`} className="max-w-40 truncate rounded-lg px-2 py-2 font-medium text-slate-700 hover:bg-slate-100">
+                <span className="hidden sm:inline">Hola, {cliente.nombre.split(' ')[0]}</span>
+                <span className="sm:hidden">Mi cuenta</span>
+              </Link>
               <button type="button" onClick={salir} className="rounded-lg px-2 py-2 font-medium text-slate-600 hover:bg-slate-100">
                 Salir
               </button>
