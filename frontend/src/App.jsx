@@ -23,6 +23,7 @@ import Inventario from './pages/panel/catalogo/Inventario'
 import NuevoProducto from './pages/panel/catalogo/NuevoProducto'
 import Productos from './pages/panel/catalogo/Productos'
 import InicioPanel from './pages/panel/InicioPanel'
+import Descuentos from './pages/panel/Descuentos'
 import MetodosPago from './pages/panel/MetodosPago'
 import Clientes from './pages/panel/clientes/Clientes'
 import DetalleCliente from './pages/panel/clientes/DetalleCliente'
@@ -77,6 +78,7 @@ export default function App() {
                 <Route path="configuracion" element={<ConfiguracionTienda />} />
                 <Route path="suscripcion" element={<Suscripcion />} />
                 <Route path="metodos-pago" element={<MetodosPago />} />
+                <Route path="descuentos" element={<Descuentos />} />
                 <Route path="categorias" element={<Categorias />} />
                 <Route path="productos" element={<Productos />} />
                 <Route path="productos/nuevo" element={<NuevoProducto />} />
