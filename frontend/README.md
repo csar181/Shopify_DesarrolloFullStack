@@ -20,6 +20,10 @@ El puerto 5173 es fijo: el CORS del backend solo acepta ese origen. Si el backen
 | `npm run build` | Compilación de producción en `dist/` |
 | `npm run lint` | Revisión del código con oxlint |
 
+### Si la página se ve sin estilos
+
+A veces, después de cambiar de rama o de un `git pull` que modifica `vite.config.js`, Vite se reinicia solo y Tailwind deja de procesar el CSS. Detén el servidor (`Ctrl + C`), vuelve a ejecutar `npm run dev` y recarga con `Ctrl + F5`.
+
 ## Estructura
 
 ```text
