@@ -5,6 +5,10 @@ import { AuthProvider } from './context/AuthContext'
 import { TiendaProvider } from './context/TiendaContext'
 import PanelLayout from './layouts/PanelLayout'
 import PublicoLayout from './layouts/PublicoLayout'
+import TiendaPublicaLayout from './layouts/TiendaPublicaLayout'
+import Carrito from './pages/tienda/Carrito'
+import Catalogo from './pages/tienda/Catalogo'
+import ProductoPublico from './pages/tienda/ProductoPublico'
 import Inicio from './pages/Inicio'
 import NoEncontrado from './pages/NoEncontrado'
 import Login from './pages/auth/Login'
@@ -23,7 +27,7 @@ import NuevaTienda from './pages/panel/tiendas/NuevaTienda'
 // Mapa de rutas:
 //   /                 sitio de la plataforma (landing, login, registro)
 //   /panel/...        panel del propietario (requiere sesión)
-//   /tienda/:slug/... tienda pública de cada comerciante (fase de tienda pública)
+//   /tienda/:slug/... tienda pública de cada comerciante (catálogo, producto, carrito)
 export default function App() {
   return (
     <AuthProvider>
@@ -34,6 +38,13 @@ export default function App() {
             <Route path="login" element={<Login />} />
             <Route path="registro" element={<Registro />} />
             <Route path="*" element={<NoEncontrado />} />
+          </Route>
+
+          {/* Tienda pública de cada comerciante, con su propio diseño y carrito. */}
+          <Route path="tienda/:slug" element={<TiendaPublicaLayout />}>
+            <Route index element={<Catalogo />} />
+            <Route path="producto/:id" element={<ProductoPublico />} />
+            <Route path="carrito" element={<Carrito />} />
           </Route>
 
           <Route element={<RutaProtegida />}>

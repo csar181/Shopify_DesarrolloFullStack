@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router'
+import DireccionTienda from '../../../components/tienda/DireccionTienda'
 import EstadoTienda from '../../../components/tienda/EstadoTienda'
 import LogoTienda from '../../../components/tienda/LogoTienda'
 import Boton from '../../../components/ui/Boton'
@@ -47,7 +48,9 @@ export default function MisTiendas() {
                   <LogoTienda key={t.urlLogo} tienda={t} />
                   <div className="min-w-0">
                     <h2 className="truncate font-semibold text-slate-900">{t.nombre}</h2>
-                    <p className="truncate text-sm text-slate-500">/tienda/{t.slug}</p>
+                    <p className="truncate text-sm text-slate-500">
+                      <DireccionTienda tienda={t} />
+                    </p>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-600">
