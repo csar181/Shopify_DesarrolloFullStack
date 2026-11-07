@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
+import RequiereTienda from './components/RequiereTienda'
 import RutaProtegida from './components/RutaProtegida'
 import { AuthProvider } from './context/AuthContext'
 import { TiendaProvider } from './context/TiendaContext'
@@ -9,6 +10,10 @@ import NoEncontrado from './pages/NoEncontrado'
 import Login from './pages/auth/Login'
 import Registro from './pages/auth/Registro'
 import ConfiguracionTienda from './pages/panel/ConfiguracionTienda'
+import Categorias from './pages/panel/catalogo/Categorias'
+import DetalleProducto from './pages/panel/catalogo/DetalleProducto'
+import NuevoProducto from './pages/panel/catalogo/NuevoProducto'
+import Productos from './pages/panel/catalogo/Productos'
 import InicioPanel from './pages/panel/InicioPanel'
 import MisTiendas from './pages/panel/tiendas/MisTiendas'
 import NuevaTienda from './pages/panel/tiendas/NuevaTienda'
@@ -41,7 +46,15 @@ export default function App() {
               <Route index element={<InicioPanel />} />
               <Route path="tiendas" element={<MisTiendas />} />
               <Route path="tiendas/nueva" element={<NuevaTienda />} />
-              <Route path="configuracion" element={<ConfiguracionTienda />} />
+
+              {/* Trabajan sobre la tienda actual (X-Tenant-ID). */}
+              <Route element={<RequiereTienda />}>
+                <Route path="configuracion" element={<ConfiguracionTienda />} />
+                <Route path="categorias" element={<Categorias />} />
+                <Route path="productos" element={<Productos />} />
+                <Route path="productos/nuevo" element={<NuevoProducto />} />
+                <Route path="productos/:id" element={<DetalleProducto />} />
+              </Route>
             </Route>
           </Route>
         </Routes>
