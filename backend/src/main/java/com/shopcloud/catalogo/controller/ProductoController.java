@@ -40,10 +40,10 @@ public class ProductoController {
 
     @GetMapping
     public ResponseEntity<List<ProductoRespuestaDTO>>
-    listar() {
+    listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
 
         return ResponseEntity.ok(
-                productoService.listar()
+                productoService.listar(incluirInactivos)
         );
     }
 

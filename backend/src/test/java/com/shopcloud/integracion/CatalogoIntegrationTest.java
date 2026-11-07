@@ -184,4 +184,34 @@ class CatalogoIntegrationTest extends IntegracionBase {
         put("/api/categorias/" + otra, token, tienda, Map.of("nombre", "Polos"))
                 .andExpect(status().isConflict());
     }
+
+    @Test
+    void losListadosIncluyenLosDesactivadosSoloSiSeSolicitan() throws Exception {
+        String token = registrarPropietario("inactivos@tienda.pe");
+        Long tienda = crearTienda(token, "inactivos", "Emprendedor");
+        Long categoria = id(post("/api/categorias", token, tienda, Map.of("nombre", "Polos"))
+                .andExpect(status().isCreated()));
+        Long producto = crearProducto(token, tienda, "Polo azul", "39.90");
+        crearProducto(token, tienda, "Polo rojo", "39.90");
+
+        delete("/api/categorias/" + categoria, token, tienda).andExpect(status().isNoContent());
+        delete("/api/productos/" + producto, token, tienda).andExpect(status().isNoContent());
+
+        // Sin el parámetro, el comportamiento de siempre: solo los activos.
+        get("/api/categorias", token, tienda).andExpect(jsonPath("$", hasSize(0)));
+        get("/api/productos", token, tienda).andExpect(jsonPath("$", hasSize(1)));
+
+        get("/api/categorias?incluirInactivos=true", token, tienda)
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].activo").value(false));
+        get("/api/productos?incluirInactivos=true", token, tienda)
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[?(@.id == " + producto + ")].activo").value(false));
+
+        // Nunca aparecen los de otra tienda.
+        String otroToken = registrarPropietario("otro-inactivos@tienda.pe");
+        Long otraTienda = crearTienda(otroToken, "otra-inactivos", "Emprendedor");
+        get("/api/productos?incluirInactivos=true", otroToken, otraTienda).andExpect(jsonPath("$", hasSize(0)));
+        get("/api/categorias?incluirInactivos=true", otroToken, otraTienda).andExpect(jsonPath("$", hasSize(0)));
+    }
 }

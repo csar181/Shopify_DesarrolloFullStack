@@ -11,6 +11,8 @@ public interface CategoriaRepository
 
     List<Categoria> findByTiendaIdAndActivoTrue(Long tiendaId);
 
+    List<Categoria> findByTiendaId(Long tiendaId);
+
     Optional<Categoria> findByIdAndTiendaId(
             Long categoriaId,
             Long tiendaId
