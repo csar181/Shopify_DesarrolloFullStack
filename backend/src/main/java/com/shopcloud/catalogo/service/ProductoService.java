@@ -73,14 +73,16 @@ public class ProductoService {
         );
     }
 
+    /** Por defecto solo los activos; con incluirInactivos, también los desactivados para poder reactivarlos. */
     @Transactional(readOnly = true)
-    public List<ProductoRespuestaDTO> listar() {
+    public List<ProductoRespuestaDTO> listar(boolean incluirInactivos) {
 
         Long tiendaId =
                 tenantService.obtenerTenantId();
 
-        return productoRepository
-                .findByTiendaIdAndActivoTrue(tiendaId)
+        return (incluirInactivos
+                ? productoRepository.findByTiendaId(tiendaId)
+                : productoRepository.findByTiendaIdAndActivoTrue(tiendaId))
                 .stream()
                 .map(this::convertirDTO)
                 .toList();

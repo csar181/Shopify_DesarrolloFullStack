@@ -41,10 +41,10 @@ public class CategoriaController {
 
     @GetMapping
     public ResponseEntity<List<CategoriaRespuestaDTO>>
-    listar() {
+    listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
 
         return ResponseEntity.ok(
-                categoriaService.listar()
+                categoriaService.listar(incluirInactivos)
         );
     }
 

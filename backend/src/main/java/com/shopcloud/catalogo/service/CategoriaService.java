@@ -61,14 +61,16 @@ public class CategoriaService {
         );
     }
 
+    /** Por defecto solo las activas; con incluirInactivos, también las desactivadas para poder reactivarlas. */
     @Transactional(readOnly = true)
-    public List<CategoriaRespuestaDTO> listar() {
+    public List<CategoriaRespuestaDTO> listar(boolean incluirInactivos) {
 
         Long tiendaId =
                 tenantService.obtenerTenantId();
 
-        return categoriaRepository
-                .findByTiendaIdAndActivoTrue(tiendaId)
+        return (incluirInactivos
+                ? categoriaRepository.findByTiendaId(tiendaId)
+                : categoriaRepository.findByTiendaIdAndActivoTrue(tiendaId))
                 .stream()
                 .map(this::convertirDTO)
                 .toList();
