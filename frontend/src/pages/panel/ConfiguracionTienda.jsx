@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router'
 import { activarTienda, actualizarTienda, desactivarTienda } from '../../api/tiendas'
 import CamposTienda from '../../components/tienda/CamposTienda'
 import Alerta from '../../components/ui/Alerta'
@@ -98,11 +97,7 @@ function ZonaEstado({ tienda, onCambio }) {
         ) : confirmando ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-slate-800">¿Seguro que quieres desactivarla?</span>
-            <Boton
-              cargando={procesando}
-              onClick={() => ejecutar(onCambio.desactivar)}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-red-600/60"
-            >
+            <Boton variante="peligro" cargando={procesando} onClick={() => ejecutar(onCambio.desactivar)}>
               Sí, desactivar
             </Boton>
             <Boton variante="secundario" onClick={() => setConfirmando(false)} disabled={procesando}>
@@ -120,11 +115,8 @@ function ZonaEstado({ tienda, onCambio }) {
 }
 
 export default function ConfiguracionTienda() {
+  // RequiereTienda (en App.jsx) garantiza que hay una tienda elegida.
   const { tienda, guardarEnLista, recargar } = useTiendas()
-
-  if (!tienda) {
-    return <Navigate to="/panel" replace />
-  }
 
   const cambioDeEstado = {
     activar: async () => guardarEnLista(await activarTienda(tienda.id)),

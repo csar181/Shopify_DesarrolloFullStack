@@ -38,7 +38,7 @@ export default function BotonConfirmar({
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <span className="text-sm text-slate-700">{pregunta}</span>
-      <Boton cargando={procesando} onClick={confirmar} className="bg-red-600 hover:bg-red-700 disabled:bg-red-600/60">
+      <Boton variante="peligro" cargando={procesando} onClick={confirmar}>
         {textoConfirmar}
       </Boton>
       <Boton variante="secundario" disabled={procesando} onClick={() => setConfirmando(false)}>

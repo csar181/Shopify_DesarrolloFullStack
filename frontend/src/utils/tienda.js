@@ -1,4 +1,5 @@
 import { diasRestantes, formatearFecha } from './formato'
+import { quitarTildes } from './texto'
 
 /**
  * Situación de una tienda según docs/API_BACKEND.md ("Situación de una tienda").
@@ -37,10 +38,7 @@ export function estadoTienda(tienda) {
 
 /** Misma regla que SlugUtil del backend: "Café Ñandú!" → "cafe-nandu". */
 export function generarSlug(texto) {
-  return texto
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
+  return quitarTildes(texto)
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')

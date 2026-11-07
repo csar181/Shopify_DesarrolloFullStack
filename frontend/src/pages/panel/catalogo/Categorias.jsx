@@ -178,7 +178,8 @@ export default function Categorias() {
         )}
       </div>
 
-      {puedeEditar && !lleno && (
+      {/* Solo con la lista cargada: si falló, agregar a una lista desconocida no tiene sentido. */}
+      {categorias && puedeEditar && !lleno && (
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="mb-3 font-semibold text-slate-900">Nueva categoría</h2>
           <FormularioCategoria

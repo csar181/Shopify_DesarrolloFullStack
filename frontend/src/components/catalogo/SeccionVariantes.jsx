@@ -177,7 +177,7 @@ export default function SeccionVariantes({ productoId, precioProducto, puedeEdit
           )
         )}
 
-        {puedeEditar && (
+        {variantes && puedeEditar && (
           <div className="rounded-xl bg-slate-50 p-4">
             <h3 className="mb-3 text-sm font-semibold text-slate-800">Agregar variante</h3>
             <FormularioVariante

@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { listarCategorias } from '../../../api/categorias'
 import { activarProducto, actualizarProducto, desactivarProducto, obtenerProducto } from '../../../api/productos'
 import FormularioProducto from '../../../components/catalogo/FormularioProducto'
@@ -61,7 +61,14 @@ function ZonaEstado({ producto, puedeEditar, onCambio }) {
 
 export default function DetalleProducto() {
   const { id } = useParams()
-  const recienCreado = useLocation().state?.recienCreado
+  const { pathname, state } = useLocation()
+  const navegar = useNavigate()
+  // El aviso de "recién creado" se muestra una sola vez: después se borra del historial
+  // para que no reaparezca al recargar o al volver con el botón Atrás.
+  const [recienCreado] = useState(() => Boolean(state?.recienCreado))
+  useEffect(() => {
+    if (state?.recienCreado) navegar(pathname, { replace: true, state: null })
+  }, [state, pathname, navegar])
   const { tienda } = useTiendas()
   const plan = usePlanTienda()
   const puedeEditar = tienda.administrable

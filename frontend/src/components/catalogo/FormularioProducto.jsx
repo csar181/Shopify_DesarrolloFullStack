@@ -40,9 +40,14 @@ export default function FormularioProducto({ producto, categorias, textoBoton, o
 
   async function enviar(evento) {
     evento.preventDefault()
+    setAviso({ tipo: 'error', texto: '' })
+    // El backend solo acepta categorías activas y respondería un 404 poco claro.
+    if (categoriaDesactivada && datos.categoriaId === String(categoriaDesactivada.id)) {
+      setErrores({ categoriaId: 'Esta categoría está desactivada. Elige otra, elige "Sin categoría" o reactívala.' })
+      return
+    }
     setEnviando(true)
     setErrores({})
-    setAviso({ tipo: 'error', texto: '' })
     try {
       await onGuardar(
         vaciosANull({

@@ -11,21 +11,17 @@ import { useTiendas } from '../../../context/TiendaContext'
 import { useDatos } from '../../../hooks/useDatos'
 import { usePlanTienda } from '../../../hooks/usePlanTienda'
 import { formatearSoles } from '../../../utils/formato'
-
-/** Texto sin tildes ni mayúsculas, para buscar "cafe" y encontrar "Café". */
-const normalizar = (texto) =>
-  (texto ?? '')
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
+import { quitarTildes } from '../../../utils/texto'
 
 export default function Productos() {
   const { tienda } = useTiendas()
   const plan = usePlanTienda()
   const puedeEditar = tienda.administrable
 
+  // Las categorías incluyen las desactivadas: sus productos siguen existiendo y hay que poder filtrarlos.
   const cargar = useCallback(
-    () => Promise.all([listarProductos({ incluirInactivos: true }), listarCategorias()]),
+    () =>
+      Promise.all([listarProductos({ incluirInactivos: true }), listarCategorias({ incluirInactivos: true })]),
     [],
   )
   const { datos, cargando, error, setDatos } = useDatos(cargar)
@@ -40,9 +36,10 @@ export default function Productos() {
   const desactivados = productos.filter((p) => !p.activo)
   const lleno = plan?.maxProductos != null && activos.length >= plan.maxProductos
 
-  const termino = normalizar(busqueda.trim())
+  // "cafe" encuentra "Café".
+  const termino = quitarTildes(busqueda.trim())
   const visibles = (pestana === 'activos' ? activos : desactivados)
-    .filter((p) => !termino || normalizar(p.nombre).includes(termino) || normalizar(p.sku).includes(termino))
+    .filter((p) => !termino || quitarTildes(p.nombre).includes(termino) || quitarTildes(p.sku).includes(termino))
     .filter((p) => !categoriaId || String(p.categoriaId) === categoriaId)
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 
@@ -104,11 +101,13 @@ export default function Productos() {
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-marca-500 focus:ring-2 focus:ring-marca-100"
         >
           <option value="">Todas las categorías</option>
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
+          {[...categorias]
+            .sort((a, b) => Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre, 'es'))
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.activo ? c.nombre : `${c.nombre} (desactivada)`}
+              </option>
+            ))}
         </select>
       </div>
 

@@ -22,7 +22,7 @@ function Miniatura({ url, className }) {
 /** Imágenes del producto. El backend solo guarda URLs; la principal es la que se ve en el catálogo. */
 export default function SeccionImagenes({ productoId, limite, puedeEditar }) {
   const cargar = useCallback(() => listarImagenes(productoId), [productoId])
-  const { datos: imagenes, cargando, error, recargar, setDatos } = useDatos(cargar)
+  const { datos: imagenes, cargando, error, setDatos } = useDatos(cargar)
 
   const [url, setUrl] = useState('')
   const [errorUrl, setErrorUrl] = useState('')
@@ -54,7 +54,8 @@ export default function SeccionImagenes({ productoId, limite, puedeEditar }) {
     setMensaje('')
     try {
       await actualizarImagen(productoId, imagen.id, { urlImagen: imagen.urlImagen, esPrincipal: true })
-      await recargar()
+      // El backend quita la marca a la anterior: aquí se hace lo mismo sin volver a pedir la lista.
+      setDatos((actuales) => actuales.map((i) => ({ ...i, esPrincipal: i.id === imagen.id })))
     } catch (e) {
       setMensaje(e.message)
     }
@@ -121,7 +122,9 @@ export default function SeccionImagenes({ productoId, limite, puedeEditar }) {
           </ul>
         )}
 
-        {puedeEditar &&
+        {/* Solo con la lista cargada: si falló, no se sabe si la nueva debe ser la principal. */}
+        {imagenes &&
+          puedeEditar &&
           (lleno ? (
             <p className="text-sm text-amber-800">
               Llegaste al máximo de imágenes de tu plan. Quita una para agregar otra.
