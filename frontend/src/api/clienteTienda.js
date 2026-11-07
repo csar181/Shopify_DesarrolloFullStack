@@ -139,3 +139,49 @@ export async function obtenerPedido(slug, id) {
   const { data } = await api(slug).get(`/pedidos/${id}`)
   return data
 }
+
+// ---- Mi cuenta ----
+
+/** [{ id, estado, total, tipoComprobante, numeroComprobante, creadoEn, ... }] */
+export async function listarMisPedidos(slug) {
+  const { data } = await api(slug).get('/pedidos')
+  return data
+}
+
+/** { id, nombre, correoElectronico, telefono } */
+export async function obtenerPerfil(slug) {
+  const { data } = await api(slug).get('/mi-cuenta/perfil')
+  return data
+}
+
+/** PUT { nombre, telefono }: el correo no se puede cambiar. */
+export async function actualizarPerfil(slug, datos) {
+  const { data } = await api(slug).put('/mi-cuenta/perfil', datos)
+  return data
+}
+
+export async function actualizarDireccion(slug, id, datos) {
+  const { data } = await api(slug).put(`/mi-cuenta/direcciones/${id}`, datos)
+  return data
+}
+
+/** Falla (409) si la dirección ya se usó en un pedido. */
+export async function eliminarDireccion(slug, id) {
+  await api(slug).delete(`/mi-cuenta/direcciones/${id}`)
+}
+
+/** POST { tipoDocumento ('DNI' | 'RUC'), numeroDocumento, nombreRazonSocial, direccionFiscal } */
+export async function crearDatosFacturacion(slug, datos) {
+  const { data } = await api(slug).post('/mi-cuenta/datos-facturacion', datos)
+  return data
+}
+
+export async function actualizarDatosFacturacion(slug, id, datos) {
+  const { data } = await api(slug).put(`/mi-cuenta/datos-facturacion/${id}`, datos)
+  return data
+}
+
+/** Falla (409) si esos datos ya se usaron en un pedido. */
+export async function eliminarDatosFacturacion(slug, id) {
+  await api(slug).delete(`/mi-cuenta/datos-facturacion/${id}`)
+}

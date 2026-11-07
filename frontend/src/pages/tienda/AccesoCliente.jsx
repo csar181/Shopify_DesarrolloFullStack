@@ -5,7 +5,7 @@ import Campo from '../../components/ui/Campo'
 import { useTiendaPublica } from '../../context/TiendaPublicaContext'
 
 // Páginas a las que se puede volver después de ingresar (?volver=checkout).
-const DESTINOS = ['checkout', 'carrito']
+const DESTINOS = ['checkout', 'carrito', 'cuenta', 'cuenta/pedidos']
 
 /**
  * Ingreso y registro del cliente en una tienda. La cuenta es solo de esta tienda:

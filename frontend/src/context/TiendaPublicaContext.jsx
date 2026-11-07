@@ -102,6 +102,19 @@ export function TiendaPublicaProvider({ slug, children }) {
     async (credenciales) => comenzarSesion(await iniciarSesionCliente(slug, credenciales)),
     [slug, comenzarSesion],
   )
+  /** Tras editar el perfil: actualiza el nombre guardado en la sesión (lo muestra la cabecera). */
+  const actualizarCliente = useCallback(
+    (cambios) => {
+      setSesion((actual) => {
+        if (!actual) return actual
+        const nueva = { ...actual, cliente: { ...actual.cliente, ...cambios } }
+        sesionCliente.guardar(slug, nueva)
+        return nueva
+      })
+    },
+    [slug],
+  )
+
   const crearCuenta = useCallback(
     async (datos) => comenzarSesion(await registrarCliente(slug, datos)),
     [slug, comenzarSesion],
@@ -175,6 +188,7 @@ export function TiendaPublicaProvider({ slug, children }) {
       entrar,
       crearCuenta,
       salir,
+      actualizarCliente,
       carrito,
       cantidadEnCarrito: carrito.reduce((suma, l) => suma + l.cantidad, 0),
       /** Unidades de ese producto y variante que ya están en el carrito. */
@@ -188,7 +202,7 @@ export function TiendaPublicaProvider({ slug, children }) {
       vaciar,
       recargarCarrito,
     }),
-    [slug, tienda, cargando, error, sesion, entrar, crearCuenta, salir, carrito, advertencias, agregar, cambiarCantidad, quitar, vaciar, recargarCarrito],
+    [slug, tienda, cargando, error, sesion, entrar, crearCuenta, salir, actualizarCliente, carrito, advertencias, agregar, cambiarCantidad, quitar, vaciar, recargarCarrito],
   )
 
   return <TiendaPublicaContext.Provider value={valor}>{children}</TiendaPublicaContext.Provider>

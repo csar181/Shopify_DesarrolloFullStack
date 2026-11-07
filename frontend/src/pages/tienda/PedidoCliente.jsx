@@ -59,12 +59,17 @@ export default function PedidoCliente() {
             <DatosPedido pedido={pedido} />
           </div>
 
-          <Link
-            to={base}
-            className="mt-8 inline-block rounded-lg bg-(--tienda) px-6 py-2.5 font-medium text-(--tienda-texto) hover:brightness-95"
-          >
-            Seguir comprando
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              to={base}
+              className="rounded-lg bg-(--tienda) px-6 py-2.5 font-medium text-(--tienda-texto) hover:brightness-95"
+            >
+              Seguir comprando
+            </Link>
+            <Link to={`${base}/cuenta/pedidos`} className="font-medium text-slate-700 underline">
+              Ver mis pedidos
+            </Link>
+          </div>
         </>
       )}
     </div>
