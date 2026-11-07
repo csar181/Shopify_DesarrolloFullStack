@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { listarCategorias } from '../../../api/categorias'
-import { activarProducto, actualizarProducto, desactivarProducto, obtenerProducto } from '../../../api/productos'
+import { listarInventario } from '../../../api/inventario'
+import {
+  activarProducto,
+  actualizarProducto,
+  desactivarProducto,
+  listarVariantes,
+  obtenerProducto,
+} from '../../../api/productos'
 import FormularioProducto from '../../../components/catalogo/FormularioProducto'
 import SeccionImagenes from '../../../components/catalogo/SeccionImagenes'
 import SeccionVariantes from '../../../components/catalogo/SeccionVariantes'
+import SeccionInventario from '../../../components/inventario/SeccionInventario'
 import Alerta from '../../../components/ui/Alerta'
 import Boton from '../../../components/ui/Boton'
 import BotonConfirmar from '../../../components/ui/BotonConfirmar'
@@ -61,7 +69,7 @@ function ZonaEstado({ producto, puedeEditar, onCambio }) {
 
 export default function DetalleProducto() {
   const { id } = useParams()
-  const { pathname, state } = useLocation()
+  const { pathname, state, hash } = useLocation()
   const navegar = useNavigate()
   // El aviso de "recién creado" se muestra una sola vez: después se borra del historial
   // para que no reaparezca al recargar o al volver con el botón Atrás.
@@ -78,6 +86,23 @@ export default function DetalleProducto() {
   const [producto, categorias] = datos ?? [null, []]
 
   const actualizarEnPantalla = (nuevo) => setDatos(([, cats]) => [nuevo, cats])
+
+  // Variantes e inventario se cargan aquí porque los usan dos secciones:
+  // el stock se lleva por variante y, con stock general, no se pueden crear variantes.
+  const cargarVariantes = useCallback(() => listarVariantes(id), [id])
+  const variantes = useDatos(cargarVariantes)
+  // El backend no filtra el inventario por producto: se pide el de la tienda y se filtra aquí.
+  const inventario = useDatos(listarInventario)
+  const registrosDelProducto = (inventario.datos ?? []).filter((r) => r.productoId === producto?.id)
+  const conStockGeneral = registrosDelProducto.some((r) => r.varianteId == null)
+
+  // Los enlaces "Registrar stock" llegan con #inventario: se baja a esa sección cuando ya está en pantalla.
+  const inventarioVisible = Boolean(producto && inventario.datos && variantes.datos)
+  useEffect(() => {
+    if (hash === '#inventario' && inventarioVisible) {
+      document.getElementById('inventario')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [hash, inventarioVisible])
 
   return (
     <div className="max-w-4xl">
@@ -101,7 +126,9 @@ export default function DetalleProducto() {
 
           <div className="mt-6 space-y-6">
             {recienCreado && (
-              <Alerta tipo="exito">Producto creado. Ahora puedes agregarle imágenes y variantes.</Alerta>
+              <Alerta tipo="exito">
+                Producto creado. Ahora agrégale imágenes, variantes si las tiene, y registra su stock para poder venderlo.
+              </Alerta>
             )}
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6">
@@ -118,7 +145,31 @@ export default function DetalleProducto() {
 
             <SeccionImagenes productoId={producto.id} limite={plan?.maxImagenesProducto} puedeEditar={puedeEditar} />
 
-            <SeccionVariantes productoId={producto.id} precioProducto={producto.precio} puedeEditar={puedeEditar} />
+            <SeccionVariantes
+              productoId={producto.id}
+              precioProducto={producto.precio}
+              puedeEditar={puedeEditar}
+              variantes={variantes.datos}
+              cargando={variantes.cargando}
+              error={variantes.error}
+              setVariantes={variantes.setDatos}
+              conStockGeneral={conStockGeneral}
+            />
+
+            {inventario.error ? (
+              <Alerta>No se pudo cargar el inventario: {inventario.error}</Alerta>
+            ) : (
+              inventario.datos &&
+              variantes.datos && (
+                <SeccionInventario
+                  producto={producto}
+                  variantes={variantes.datos}
+                  inventario={registrosDelProducto}
+                  setInventario={inventario.setDatos}
+                  puedeEditar={puedeEditar}
+                />
+              )
+            )}
 
             <ZonaEstado producto={producto} puedeEditar={puedeEditar} onCambio={actualizarEnPantalla} />
           </div>

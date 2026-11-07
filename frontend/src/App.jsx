@@ -12,6 +12,7 @@ import Registro from './pages/auth/Registro'
 import ConfiguracionTienda from './pages/panel/ConfiguracionTienda'
 import Categorias from './pages/panel/catalogo/Categorias'
 import DetalleProducto from './pages/panel/catalogo/DetalleProducto'
+import Inventario from './pages/panel/catalogo/Inventario'
 import NuevoProducto from './pages/panel/catalogo/NuevoProducto'
 import Productos from './pages/panel/catalogo/Productos'
 import InicioPanel from './pages/panel/InicioPanel'
@@ -54,6 +55,7 @@ export default function App() {
                 <Route path="productos" element={<Productos />} />
                 <Route path="productos/nuevo" element={<NuevoProducto />} />
                 <Route path="productos/:id" element={<DetalleProducto />} />
+                <Route path="inventario" element={<Inventario />} />
               </Route>
             </Route>
           </Route>

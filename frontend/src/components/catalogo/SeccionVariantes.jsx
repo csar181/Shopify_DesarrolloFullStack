@@ -1,6 +1,5 @@
-import { useCallback, useState } from 'react'
-import { actualizarVariante, crearVariante, eliminarVariante, listarVariantes } from '../../api/productos'
-import { useDatos } from '../../hooks/useDatos'
+import { useState } from 'react'
+import { actualizarVariante, crearVariante, eliminarVariante } from '../../api/productos'
 import { formatearSoles } from '../../utils/formato'
 import { vaciosANull } from '../../utils/tienda'
 import Alerta from '../ui/Alerta'
@@ -139,10 +138,21 @@ function FilaVariante({ productoId, variante, precioProducto, puedeEditar, onCam
   )
 }
 
-/** Variantes del producto (talla, color...). Cada una puede tener su propio precio y SKU. */
-export default function SeccionVariantes({ productoId, precioProducto, puedeEditar }) {
-  const cargar = useCallback(() => listarVariantes(productoId), [productoId])
-  const { datos: variantes, cargando, error, setDatos } = useDatos(cargar)
+/**
+ * Variantes del producto (talla, color...). Cada una puede tener su propio precio y SKU.
+ * Las carga DetalleProducto porque la sección de inventario también las usa.
+ * Con `conStockGeneral`, el backend no permite crear variantes y se explica cómo cambiar.
+ */
+export default function SeccionVariantes({
+  productoId,
+  precioProducto,
+  puedeEditar,
+  variantes,
+  cargando,
+  error,
+  setVariantes: setDatos,
+  conStockGeneral,
+}) {
   const [mensaje, setMensaje] = useState('')
 
   const lista = [...(variantes ?? [])].sort((a, b) => a.id - b.id)
@@ -177,7 +187,14 @@ export default function SeccionVariantes({ productoId, precioProducto, puedeEdit
           )
         )}
 
-        {variantes && puedeEditar && (
+        {variantes && puedeEditar && conStockGeneral && (
+          <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+            Este producto lleva un stock general, así que no admite variantes. Para usarlas, deja su stock en 0 y
+            quita el registro en la sección <a href="#inventario" className="font-medium text-marca-700 hover:underline">Inventario</a>.
+          </p>
+        )}
+
+        {variantes && puedeEditar && !conStockGeneral && (
           <div className="rounded-xl bg-slate-50 p-4">
             <h3 className="mb-3 text-sm font-semibold text-slate-800">Agregar variante</h3>
             <FormularioVariante
