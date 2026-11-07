@@ -2,14 +2,22 @@ import { useId } from 'react'
 
 /**
  * Input con etiqueta, ayuda y mensaje de error (por ejemplo, el de `errores` del backend).
- * Con `multilinea` se muestra un textarea.
+ * Con `multilinea` se muestra un textarea; con `seleccion`, un select (las opciones van como children).
  */
-export default function Campo({ etiqueta, error, ayuda, multilinea = false, className = '', ...props }) {
+export default function Campo({
+  etiqueta,
+  error,
+  ayuda,
+  multilinea = false,
+  seleccion = false,
+  className = '',
+  ...props
+}) {
   const id = useId()
   const idAyuda = `${id}-ayuda`
   const idError = `${id}-error`
   const descritoPor = [ayuda && idAyuda, error && idError].filter(Boolean).join(' ') || undefined
-  const Elemento = multilinea ? 'textarea' : 'input'
+  const Elemento = multilinea ? 'textarea' : seleccion ? 'select' : 'input'
 
   return (
     <div className={className}>
