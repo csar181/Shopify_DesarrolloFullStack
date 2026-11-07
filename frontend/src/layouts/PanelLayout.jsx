@@ -12,6 +12,7 @@ import { useTiendas } from '../context/TiendaContext'
 const SECCIONES = [
   { a: '/panel', texto: 'Inicio', exacta: true },
   { a: '/panel/pedidos', texto: 'Pedidos', requiereTienda: true },
+  { a: '/panel/estadisticas', texto: 'Estadísticas', requiereTienda: true },
   { a: '/panel/productos', texto: 'Productos', requiereTienda: true },
   { a: '/panel/categorias', texto: 'Categorías', requiereTienda: true },
   { a: '/panel/inventario', texto: 'Inventario', requiereTienda: true },
