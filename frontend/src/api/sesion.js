@@ -41,3 +41,16 @@ export const tiendaActual = {
   obtener: () => leer(CLAVE_TIENDA_ACTUAL),
   guardar: (tiendaId) => escribir(CLAVE_TIENDA_ACTUAL, tiendaId),
 }
+
+/**
+ * Carrito de un visitante en una tienda, antes de iniciar sesión: [{ productoId, varianteId, cantidad }].
+ * Es el mismo formato que POST /api/carrito/sincronizar. Solo guarda qué y cuánto:
+ * precios y stock se leen siempre del catálogo.
+ */
+export const carritoLocal = {
+  obtener: (slug) => {
+    const items = leer(`shopcloud.carrito.${slug}`)
+    return Array.isArray(items) ? items : []
+  },
+  guardar: (slug, items) => escribir(`shopcloud.carrito.${slug}`, items.length > 0 ? items : null),
+}

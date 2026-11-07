@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import AvisosInventario from '../../components/inventario/AvisosInventario'
+import DireccionTienda from '../../components/tienda/DireccionTienda'
 import EstadoTienda from '../../components/tienda/EstadoTienda'
 import LogoTienda from '../../components/tienda/LogoTienda'
 import { useAuth } from '../../context/AuthContext'
@@ -57,7 +58,9 @@ export default function InicioPanel() {
         <Dato titulo={tienda.suscripcionTipo === 'PRUEBA' ? 'La prueba termina' : 'Vigente hasta'}>
           {tienda.suscripcionFin ? formatearFecha(tienda.suscripcionFin) : '—'}
         </Dato>
-        <Dato titulo="Dirección de la tienda">/tienda/{tienda.slug}</Dato>
+        <Dato titulo="Dirección de la tienda">
+          <DireccionTienda tienda={tienda} />
+        </Dato>
         <Dato titulo="Creada">{formatearFecha(tienda.creadoEn)}</Dato>
       </dl>
 

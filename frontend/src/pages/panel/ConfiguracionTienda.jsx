@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { activarTienda, actualizarTienda, desactivarTienda } from '../../api/tiendas'
+import DireccionTienda from '../../components/tienda/DireccionTienda'
 import CamposTienda from '../../components/tienda/CamposTienda'
 import Alerta from '../../components/ui/Alerta'
 import Boton from '../../components/ui/Boton'
@@ -130,7 +131,7 @@ export default function ConfiguracionTienda() {
     <div className="max-w-4xl">
       <h1 className="text-2xl font-semibold text-slate-900">Configuración</h1>
       <p className="mt-1 text-sm text-slate-600">
-        Dirección de la tienda: <span className="font-medium text-slate-800">/tienda/{tienda.slug}</span>
+        Dirección de la tienda: <DireccionTienda tienda={tienda} className="font-medium text-slate-800" />
       </p>
 
       <div className="mt-6">
