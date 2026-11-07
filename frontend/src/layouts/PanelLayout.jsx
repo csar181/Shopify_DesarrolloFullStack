@@ -14,6 +14,7 @@ const SECCIONES = [
   { a: '/panel/productos', texto: 'Productos', requiereTienda: true },
   { a: '/panel/categorias', texto: 'Categorías', requiereTienda: true },
   { a: '/panel/inventario', texto: 'Inventario', requiereTienda: true },
+  { a: '/panel/suscripcion', texto: 'Suscripción', requiereTienda: true },
   { a: '/panel/configuracion', texto: 'Configuración', requiereTienda: true },
   { a: '/panel/tiendas', texto: 'Mis tiendas' },
 ]

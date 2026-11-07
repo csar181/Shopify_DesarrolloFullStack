@@ -16,6 +16,7 @@ import Inventario from './pages/panel/catalogo/Inventario'
 import NuevoProducto from './pages/panel/catalogo/NuevoProducto'
 import Productos from './pages/panel/catalogo/Productos'
 import InicioPanel from './pages/panel/InicioPanel'
+import Suscripcion from './pages/panel/Suscripcion'
 import MisTiendas from './pages/panel/tiendas/MisTiendas'
 import NuevaTienda from './pages/panel/tiendas/NuevaTienda'
 
@@ -51,6 +52,7 @@ export default function App() {
               {/* Trabajan sobre la tienda actual (X-Tenant-ID). */}
               <Route element={<RequiereTienda />}>
                 <Route path="configuracion" element={<ConfiguracionTienda />} />
+                <Route path="suscripcion" element={<Suscripcion />} />
                 <Route path="categorias" element={<Categorias />} />
                 <Route path="productos" element={<Productos />} />
                 <Route path="productos/nuevo" element={<NuevoProducto />} />
