@@ -11,9 +11,11 @@ import { useTiendas } from '../context/TiendaContext'
 // `requiereTienda`: solo se muestra si hay una tienda elegida.
 const SECCIONES = [
   { a: '/panel', texto: 'Inicio', exacta: true },
+  { a: '/panel/pedidos', texto: 'Pedidos', requiereTienda: true },
   { a: '/panel/productos', texto: 'Productos', requiereTienda: true },
   { a: '/panel/categorias', texto: 'Categorías', requiereTienda: true },
   { a: '/panel/inventario', texto: 'Inventario', requiereTienda: true },
+  { a: '/panel/clientes', texto: 'Clientes', requiereTienda: true },
   { a: '/panel/metodos-pago', texto: 'Métodos de pago', requiereTienda: true },
   { a: '/panel/suscripcion', texto: 'Suscripción', requiereTienda: true },
   { a: '/panel/configuracion', texto: 'Configuración', requiereTienda: true },
