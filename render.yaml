@@ -1,0 +1,43 @@
+# Blueprint de Render: base PostgreSQL + API de ShopCloud, ambas en el plan gratuito.
+# En Render: New > Blueprint > elegir este repositorio. Las tablas se crean solas en el primer arranque.
+databases:
+  - name: shopcloud-db
+    plan: free
+    region: virginia
+    databaseName: shopcloud
+    user: shopcloud
+
+services:
+  - type: web
+    name: shopcloud-api
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/planes
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: shopcloud-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: shopcloud-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: shopcloud-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: shopcloud-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: shopcloud-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_CORS_ALLOWEDORIGIN
+        value: http://localhost:5173

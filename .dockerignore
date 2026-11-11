@@ -1,0 +1,8 @@
+.git
+frontend
+docs
+pruebas
+backend/target
+**/node_modules
+**/.env
+**/.env.local
